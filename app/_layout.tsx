@@ -1,24 +1,90 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useFonts } from 'expo-font';
+import * as Notifications from 'expo-notifications';
+import { Stack } from 'expo-router/stack';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { useEffect } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider } from '../context/AuthContext';
+import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { ToastProvider } from '../context/ToastContext';
+import { usePermissions } from '../hooks/usePermissions';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppFonts } from '../hooks/useFonts';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+// Configure notification behavior
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const { fontsLoaded: appFontsLoaded } = useAppFonts();
+  const [iconsLoaded, iconError] = useFonts({
+    ...Ionicons.font,
+  });
+
+  const allLoaded = appFontsLoaded && iconsLoaded;
+
+  // Request system permissions on mount
+  usePermissions();
+
+  useEffect(() => {
+    if (allLoaded || iconError) {
+      SplashScreen.hideAsync();
+    }
+  }, [allLoaded, iconError]);
+
+  if (!allLoaded && !iconError) {
+    return null;
+  }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <RootLayoutContent />
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+}
+
+function RootLayoutContent() {
+  const { theme } = useTheme();
+
+  return (
+    <>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'fade',
+          animationDuration: 45,
+          contentStyle: { backgroundColor: theme === 'dark' ? '#1e293b' : '#f8f9fa' }
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="signup" />
+        <Stack.Screen name="forgot-password" />
+        <Stack.Screen name="about" />
+        <Stack.Screen name="admin" />
+        <Stack.Screen name="supervisor" />
+        <Stack.Screen name="merchandiser" />
+        <Stack.Screen name="+not-found" />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    </>
   );
 }

@@ -1,0 +1,18 @@
+export const APP_COLORS = {
+    bgGradient: ['#5d73a8ff', '#2d5a93ff', '#36415aff'] as const,
+    accent: '#3b82f6',
+    accentDark: '#2563eb',
+    accentGlow: 'rgba(59, 130, 246, 0.25)',
+    textPrimary: '#f8fafc',
+    textSecondary: '#94a3b8',
+    textMuted: '#475569',
+    cardBg: 'rgba(255, 255, 255, 0.04)',
+    cardBorder: 'rgba(255, 255, 255, 0.08)',
+    inputBg: 'rgba(255, 255, 255, 0.06)',
+    inputBorder: 'rgba(255, 255, 255, 0.12)',
+    inputBorderFocused: '#3b82f6',
+    divider: 'rgba(255, 255, 255, 0.1)',
+    backButtonBg: 'rgba(255, 255, 255, 0.08)',
+    overlay: 'rgba(0, 0, 0, 0.15)',
+    roletext: '#d4d4d4ff',
+} as const;

@@ -6,24 +6,44 @@
 import { Platform } from 'react-native';
 
 const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const tintColorDark = '#a5a457ff';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: '#2F2F2F', // Dark Gray
+    textSecondary: '#4F3A1B', // Deep Brown
+    background: '#E5E5E5', // Snowy White
+    backgroundSecondary: '#F1D298', // Sandy Yellow
+    card: '#FAFAFA', // Off-white
     tint: tintColorLight,
-    icon: '#687076',
+    icon: '#4F3A1B',
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
+    border: '#e5e7eb',
+    success: '#16a34a',
+    warning: '#f59e0b',
+    error: '#dc2626',
+    info: '#A2DFF7', // Azure Blue
+    buttonBackground: '#F9E3B2', // Desert Yellow
+    buttonText: '#2F2F2F',
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#E0E0E0', // Pale Off-white
+    textSecondary: '#D0D0D0', // Light Gray
+    background: '#2D2D2D', // Deep Matte Black
+    backgroundSecondary: '#3B3B3B', // Charcoal Gray
+    card: '#3B3B3B',
     tint: tintColorDark,
-    icon: '#9BA1A6',
+    icon: '#DAA520', // Muted Gold
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
+    border: '#334155',
+    success: '#22c55e',
+    warning: '#fbbf24',
+    error: '#ef4444',
+    info: '#4071A0', // Premium Azure
+    buttonBackground: '#1D3B6D', // Dark Rich Blue
+    buttonText: '#E0E0E0',
   },
 };
 
