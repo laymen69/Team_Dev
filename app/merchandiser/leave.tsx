@@ -20,6 +20,7 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { MERCHANDISER_NAV_ITEMS } from '../../constants/navigation';
 import { useTheme } from '../../context/ThemeContext';
+import { LeaveService } from '../../services/leave.service';
 
 
 
@@ -39,6 +40,7 @@ export default function LeavePage() {
     const [startDate, setStartDate] = useState<string | null>(null);
     const [endDate, setEndDate] = useState<string | null>(null);
     const [reason, setReason] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const onDayPress = (day: any) => {
         if (!startDate || (startDate && endDate)) {
@@ -87,15 +89,39 @@ export default function LeavePage() {
         return marked;
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!startDate || !endDate || !reason) {
             Alert.alert('Error', 'Please select a date range and provide a reason');
             return;
         }
+        setIsSubmitting(true);
+        const res = await LeaveService.create({
+            leave_type: selectedType,
+            start_date: startDate,
+            end_date: endDate,
+            reason: reason,
+        });
+        setIsSubmitting(false);
+
+        if (res) {
+            Alert.alert(
+                'Request Submitted',
+                `Your leave request from ${startDate} to ${endDate} has been sent for approval.`,
+                [{ text: 'OK', onPress: () => router.back() }]
+            );
+        } else {
+            Alert.alert('Error', 'Failed to submit leave request. Please try again.');
+        }
+    };
+
+    const handleCancel = () => {
         Alert.alert(
-            'Request Submitted',
-            `Your leave request from ${startDate} to ${endDate} has been sent for approval.`,
-            [{ text: 'OK', onPress: () => router.back() }]
+            'Cancel Request',
+            'Are you sure you want to cancel this request?',
+            [
+                { text: 'No', style: 'cancel' },
+                { text: 'Yes', onPress: () => router.back() }
+            ]
         );
     };
 
@@ -185,13 +211,22 @@ export default function LeavePage() {
                     </Text>
                 </View>
 
-                <View style={styles.footer}>
+                {/* Action Buttons */}
+                <View style={styles.buttonRow}>
                     <Button
-                        title="Submit Request"
-                        onPress={handleSubmit}
-                        size="lg"
-                        icon="send-outline"
+                        title="Cancel"
+                        variant="ghost"
+                        onPress={handleCancel}
                         style={{ flex: 1 }}
+                        icon="close-outline"
+                        disabled={isSubmitting}
+                    />
+                    <Button
+                        title={isSubmitting ? "Submitting..." : "Submit"}
+                        onPress={handleSubmit}
+                        style={{ flex: 1.5 }}
+                        icon="send-outline"
+                        disabled={isSubmitting}
                     />
                 </View>
             </ScrollView>
@@ -217,4 +252,10 @@ const styles = StyleSheet.create({
     textArea: { fontSize: 14, lineHeight: 20 },
     charCount: { ...DesignTokens.typography.caption, textAlign: 'right', marginTop: 4 },
     footer: { padding: DesignTokens.spacing.lg, marginTop: DesignTokens.spacing.md },
+    buttonRow: {
+        flexDirection: 'row',
+        paddingHorizontal: DesignTokens.spacing.lg,
+        gap: 12,
+        marginTop: 8,
+    },
 });

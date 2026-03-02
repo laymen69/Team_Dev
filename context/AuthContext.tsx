@@ -3,6 +3,7 @@ import { useRouter, useSegments } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
+import apiClient from '../services/apiClient';
 import { AuthService } from '../services/auth.service';
 import { appEventEmitter, AppEvents } from '../services/eventEmitter';
 import { AuthState, User } from '../types/auth';
@@ -68,7 +69,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     } else {
                         const expiration = AuthService.getTokenExpiration(token);
                         console.log('[Auth] Token valid until:', expiration);
-                        setUser(JSON.parse(jsonUser));
+                        const storedUser = JSON.parse(jsonUser);
+                        // Set stored user immediately so UI doesn't block
+                        setUser(storedUser);
+                        // Then refresh from DB to get latest profileImage, phone, etc.
+                        try {
+                            const meResponse = await apiClient.get('/api/users/me');
+                            const me = meResponse.data;
+                            if (me) {
+                                const freshUser = {
+                                    ...storedUser,
+                                    firstName: me.first_name || storedUser.firstName,
+                                    lastName: me.last_name || storedUser.lastName,
+                                    email: me.email || storedUser.email,
+                                    phone: me.phone || storedUser.phone,
+                                    status: me.status || storedUser.status,
+                                    profileZone: me.profile_zone || storedUser.profileZone,
+                                    profileImage: me.profile_image ?? storedUser.profileImage,
+                                };
+                                setUser(freshUser);
+                                await saveItem(STORAGE_KEY, JSON.stringify(freshUser));
+                            }
+                        } catch (e) {
+                            console.log('[Auth] Could not refresh /me, using stored data');
+                        }
                     }
                 } else if (jsonUser && !token) {
                     // User session exists but no token - clear session
@@ -95,6 +119,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             (segments[0] as string) === 'signup' ||
             (segments[0] as string) === 'about' ||
             (segments[0] as string) === 'index';
+        const inDashboardGroup = (segments[0] as string) === 'dashboard_web';
+        if (inDashboardGroup) return;
 
         if (!user && !inAuthGroup) {
             console.log('[Auth] Guest detected in private route, redirecting to /login');

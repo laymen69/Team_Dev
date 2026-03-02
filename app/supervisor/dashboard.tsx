@@ -17,6 +17,7 @@ import { CardSkeleton } from '../../components/ui/LoadingSkeleton';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { SettingsDrawer, SettingsItemType } from '../../components/ui/SettingsDrawer';
+import { getFullImageUrl } from '../../constants/api';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { SUPERVISOR_NAV_ITEMS } from '../../constants/navigation';
 import { useAuth } from '../../context/AuthContext';
@@ -59,6 +60,18 @@ export default function SupervisorDashboard() {
       onPress: () => { setSettingsVisible(false); router.push('/supervisor/notifications'); }
     },
     {
+      icon: 'newspaper-outline',
+      label: 'Articles',
+      color: colors.primary,
+      onPress: () => { setSettingsVisible(false); router.push('/supervisor/articles'); }
+    },
+    {
+      icon: 'chatbubbles-outline',
+      label: 'Complaints',
+      color: colors.warning,
+      onPress: () => { setSettingsVisible(false); router.push('/supervisor/complaints'); }
+    },
+    {
       icon: 'calendar-outline',
       label: 'Leave Requests',
       color: colors.success,
@@ -90,7 +103,8 @@ export default function SupervisorDashboard() {
       <Header
         title={supervisorName}
         subtitle="Team Command Center"
-        avatar={user?.profileImage ? { uri: user.profileImage } : require('../../assets/images/profile.png')}
+        avatar={user?.profileImage ? { uri: getFullImageUrl(user.profileImage) } : null}
+        onAvatarPress={() => router.push('/supervisor/profile')}
         secondRightIcon="notifications-outline"
         onSecondRightIconPress={() => router.push('/supervisor/notifications')}
         rightIcon="settings-outline"
@@ -161,38 +175,66 @@ export default function SupervisorDashboard() {
         <SectionHeader title="Quick Actions" />
 
         <View style={styles.actionGrid}>
-          <ActionCard
-            title="Team Map"
-            subtitle="Live tracking"
-            icon="map"
-            vertical
-            color={colors.primary}
-            onPress={() => router.push('/supervisor/map')}
-          />
-          <ActionCard
-            title="Approve Reports"
-            subtitle="24 pending"
-            icon="checkmark-done"
-            vertical
-            color={colors.success}
-            onPress={() => router.push('/supervisor/reports')}
-          />
-          <ActionCard
-            title="Planning"
-            subtitle="Manage routes"
-            icon="calendar"
-            vertical
-            color={colors.secondary}
-            onPress={() => router.push('/supervisor/planning')}
-          />
-          <ActionCard
-            title="Help Desk"
-            subtitle="Support"
-            icon="help-buoy"
-            vertical
-            color={colors.warning}
-            onPress={() => router.push('/supervisor/help')}
-          />
+          <View style={styles.actionItem}>
+            <ActionCard
+              title="Team Map"
+              subtitle="Live tracking"
+              icon="map"
+              vertical
+              color={colors.primary}
+              onPress={() => router.push('/supervisor/map')}
+            />
+          </View>
+          <View style={styles.actionItem}>
+            <ActionCard
+              title="Approve Reports"
+              subtitle="24 pending"
+              icon="checkmark-done"
+              vertical
+              color={colors.success}
+              onPress={() => router.push('/supervisor/reports')}
+            />
+          </View>
+          <View style={styles.actionItem}>
+            <ActionCard
+              title="Articles"
+              subtitle="Knowledge base"
+              icon="newspaper-outline"
+              vertical
+              color={colors.secondary}
+              onPress={() => router.push('/supervisor/articles')}
+            />
+          </View>
+          <View style={styles.actionItem}>
+            <ActionCard
+              title="Complaints"
+              subtitle="Review issues"
+              icon="chatbubbles-outline"
+              vertical
+              color={colors.warning}
+              onPress={() => router.push('/supervisor/complaints')}
+            />
+          </View>
+          <View style={styles.actionItem}>
+            <ActionCard
+              title="Planning"
+              subtitle="Manage routes"
+              icon="calendar"
+              vertical
+              color={colors.secondary}
+              onPress={() => router.push('/supervisor/planning')}
+            />
+          </View>
+          <View style={styles.actionItem}>
+            <ActionCard
+              title="Objectives"
+              subtitle="Team goals"
+              icon="flag-outline"
+              vertical
+              color={colors.warning}
+              onPress={() => router.push('/supervisor/objectives')}
+            />
+          </View>
         </View>
       </ScrollView>
 
@@ -215,5 +257,13 @@ const styles = StyleSheet.create({
   progressStats: { flexDirection: 'row', justifyContent: 'space-between', marginTop: DesignTokens.spacing.md },
   progressStatItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   progressStatText: { ...DesignTokens.typography.caption, fontSize: 11 },
-  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: DesignTokens.spacing.sm, gap: DesignTokens.spacing.sm },
+  actionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: DesignTokens.spacing.sm,
+    gap: DesignTokens.spacing.sm
+  },
+  actionItem: {
+    width: '48.5%', // Slightly less than 50% to account for gap
+  },
 });

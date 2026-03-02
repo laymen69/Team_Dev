@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ActionSheetIOS,
     Alert,
@@ -14,6 +14,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { getFullImageUrl } from '../../constants/api';
 import { getColors } from '../../constants/designSystem';
 import { useTheme } from '../../context/ThemeContext';
 import { Fonts } from '../../hooks/useFonts';
@@ -55,7 +56,18 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     const [lastName, setLastName] = useState(userData.lastName);
     const [phone, setPhone] = useState(userData.phone);
     const [profileZone, setProfileZone] = useState(userData.profileZone || '');
-    const [image, setImage] = useState<string | null>(userData.profileImage || null);
+    const [image, setImage] = useState<string | null>(getFullImageUrl(userData.profileImage) || null);
+
+    // Reset form every time the modal opens with fresh data
+    useEffect(() => {
+        if (isVisible) {
+            setFirstName(userData.firstName);
+            setLastName(userData.lastName);
+            setPhone(userData.phone);
+            setProfileZone(userData.profileZone || '');
+            setImage(getFullImageUrl(userData.profileImage) || null);
+        }
+    }, [isVisible]);
 
     const handlePickImage = async () => {
         const options = ['Take a quick photo', 'Import from device', 'Cancel'];
@@ -306,7 +318,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 18,
-        fontFamily: Fonts.headingSemiBold,
+        fontFamily: Fonts.heading,
     },
     closeBtn: {
         padding: 4,
@@ -348,11 +360,11 @@ const styles = StyleSheet.create({
     },
     uploadText: {
         fontSize: 16,
-        fontFamily: Fonts.bodyBold,
+        fontFamily: Fonts.heading,
     },
     uploadSubtext: {
         fontSize: 12,
-        fontFamily: Fonts.body,
+        fontFamily: Fonts.secondary,
         marginTop: 2,
     },
     addBtn: {
@@ -364,7 +376,8 @@ const styles = StyleSheet.create({
     },
     addBtnText: {
         fontSize: 14,
-        fontFamily: Fonts.bodyMedium,
+        fontFamily: Fonts.cta,
+        letterSpacing: 1,
     },
     form: {
         gap: 16,
@@ -378,7 +391,7 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 11,
-        fontFamily: Fonts.bodyBold,
+        fontFamily: Fonts.secondaryBold,
         letterSpacing: 0.5,
     },
     readOnlyField: {
@@ -407,8 +420,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     cancelBtnText: {
-        fontSize: 14,
-        fontFamily: Fonts.bodyBold,
+        fontSize: 16,
+        fontFamily: Fonts.cta,
+        letterSpacing: 1,
     },
     saveBtn: {
         paddingHorizontal: 20,
@@ -418,7 +432,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     saveBtnText: {
-        fontSize: 14,
-        fontFamily: Fonts.bodyBold,
+        fontSize: 16,
+        fontFamily: Fonts.cta,
+        letterSpacing: 1,
     },
 });

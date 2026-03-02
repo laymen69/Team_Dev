@@ -15,10 +15,11 @@ import { Button } from '../../components/ui/Button';
 import { ActionCard, Card, StatCard } from '../../components/ui/Card';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { Header } from '../../components/ui/Header';
-import { CardSkeleton } from '../../components/ui/LoadingSkeleton';
+import { BannerSkeleton, CardSkeleton, ListItemSkeleton, LoadingSkeleton } from '../../components/ui/LoadingSkeleton';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { SettingsItemType, SettingsModal } from '../../components/ui/SettingsModal';
+import { getFullImageUrl } from '../../constants/api';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { MERCHANDISER_NAV_ITEMS } from '../../constants/navigation';
 import { useAuth } from '../../context/AuthContext';
@@ -150,6 +151,18 @@ export default function MerchandiserDashboard() {
       onPress: () => { setSettingsVisible(false); router.push('/merchandiser/documents'); }
     },
     {
+      icon: 'chatbubbles-outline',
+      label: 'Complaints',
+      color: colors.warning,
+      onPress: () => { setSettingsVisible(false); router.push('/merchandiser/complaints'); }
+    },
+    {
+      icon: 'newspaper-outline',
+      label: 'Articles',
+      color: colors.primary,
+      onPress: () => { setSettingsVisible(false); router.push('/merchandiser/articles'); }
+    },
+    {
       icon: theme === 'dark' ? 'moon' : 'sunny',
       label: 'Dark Mode',
       color: colors.warning,
@@ -173,7 +186,8 @@ export default function MerchandiserDashboard() {
       <Header
         title={merchandiserName}
         subtitle={todayStr}
-        avatar={user?.profileImage ? { uri: user.profileImage } : require('../../assets/images/pic.jpg')}
+        avatar={user?.profileImage ? { uri: getFullImageUrl(user.profileImage) } : null}
+        onAvatarPress={() => router.push('/merchandiser/profile')}
         secondRightIcon="notifications-outline"
         onSecondRightIconPress={() => router.push('/merchandiser/notifications')}
         rightIcon="settings-outline"
@@ -215,57 +229,61 @@ export default function MerchandiserDashboard() {
         </View>
 
         {/* GPS Control Card */}
-        <Card style={styles.gpsCard} elevation="md">
-          <View style={styles.gpsHeader}>
-            <View style={[styles.gpsIconBox, { backgroundColor: workday ? colors.success + '20' : colors.primary + '20' }]}>
-              <Ionicons name="location" size={24} color={workday ? colors.success : colors.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.gpsLabel, { color: colors.text }]}>Working Session</Text>
-              <View style={styles.statusRow}>
-                <View style={[styles.statusDot, { backgroundColor: workday ? colors.success : colors.textSecondary }]} />
-                <Text style={[styles.statusText, { color: workday ? colors.success : colors.textSecondary }]}>
-                  {workday ? `Active (${elapsed})` : 'Not Started'}
-                </Text>
+        {loading ? (
+          <BannerSkeleton />
+        ) : (
+          <Card style={styles.gpsCard} elevation="md">
+            <View style={styles.gpsHeader}>
+              <View style={[styles.gpsIconBox, { backgroundColor: workday ? colors.success + '20' : colors.primary + '20' }]}>
+                <Ionicons name="location" size={24} color={workday ? colors.success : colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.gpsLabel, { color: colors.text }]}>Working Session</Text>
+                <View style={styles.statusRow}>
+                  <View style={[styles.statusDot, { backgroundColor: workday ? colors.success : colors.textSecondary }]} />
+                  <Text style={[styles.statusText, { color: workday ? colors.success : colors.textSecondary }]}>
+                    {workday ? `Active (${elapsed})` : 'Not Started'}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          <View style={styles.gpsControls}>
-            {workday ? (
-              <View style={styles.activeWorkdayControls}>
+            <View style={styles.gpsControls}>
+              {workday ? (
+                <View style={styles.activeWorkdayControls}>
+                  <Button
+                    title="Checkpoint"
+                    variant="outline"
+                    size="sm"
+                    onPress={async () => {
+                      const cp = await LocationService.addCheckpoint();
+                      if (cp) Alert.alert('Checkpoint', 'Location saved!');
+                    }}
+                    icon="flag"
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    title="End Day"
+                    variant="danger"
+                    size="sm"
+                    onPress={() => setConfirmEndVisible(true)}
+                    loading={gpsLoading}
+                    style={{ flex: 1 }}
+                  />
+                </View>
+              ) : (
                 <Button
-                  title="Checkpoint"
-                  variant="outline"
-                  size="sm"
-                  onPress={async () => {
-                    const cp = await LocationService.addCheckpoint();
-                    if (cp) Alert.alert('Checkpoint', 'Location saved!');
-                  }}
-                  icon="flag"
-                  style={{ flex: 1 }}
-                />
-                <Button
-                  title="End Day"
-                  variant="danger"
-                  size="sm"
-                  onPress={() => setConfirmEndVisible(true)}
+                  title="Start My Workday"
+                  variant="primary"
+                  fullWidth
+                  onPress={handleStartWorkday}
                   loading={gpsLoading}
-                  style={{ flex: 1 }}
+                  icon="play"
                 />
-              </View>
-            ) : (
-              <Button
-                title="Start My Workday"
-                variant="primary"
-                fullWidth
-                onPress={handleStartWorkday}
-                loading={gpsLoading}
-                icon="play"
-              />
-            )}
-          </View>
-        </Card>
+              )}
+            </View>
+          </Card>
+        )}
 
         {/* Quick Actions */}
         <SectionHeader title="Quick Actions" />
@@ -286,6 +304,22 @@ export default function MerchandiserDashboard() {
             color={colors.secondary}
             onPress={() => router.push('/merchandiser/map')}
           />
+          <ActionCard
+            title="Complaints"
+            subtitle="Report an issue"
+            icon="chatbubbles-outline"
+            vertical
+            color={colors.warning}
+            onPress={() => router.push('/merchandiser/complaints')}
+          />
+          <ActionCard
+            title="Articles"
+            subtitle="Guidelines & news"
+            icon="newspaper-outline"
+            vertical
+            color={colors.primary}
+            onPress={() => router.push('/merchandiser/articles')}
+          />
         </View>
 
         {/* Daily Progress */}
@@ -295,18 +329,27 @@ export default function MerchandiserDashboard() {
           onAction={() => { }}
         />
         <Card style={styles.progressCard}>
-          <ProgressBar
-            progress={overallProgress}
-            label={`${stores.length} Route Points`}
-            showPercentage
-          />
-          {objectives.length > 0 && (
-            <View style={styles.progressInfo}>
-              <Ionicons name="information-circle-outline" size={14} color={colors.textSecondary} />
-              <Text style={[styles.progressSubtitle, { color: colors.textSecondary }]}>
-                Next: {objectives[0].title}
-              </Text>
+          {loading ? (
+            <View style={{ gap: 8 }}>
+              <LoadingSkeleton width="100%" height={20} />
+              <LoadingSkeleton width="60%" height={14} />
             </View>
+          ) : (
+            <>
+              <ProgressBar
+                progress={overallProgress}
+                label={`${stores.length} Route Points`}
+                showPercentage
+              />
+              {objectives.length > 0 && (
+                <View style={styles.progressInfo}>
+                  <Ionicons name="information-circle-outline" size={14} color={colors.textSecondary} />
+                  <Text style={[styles.progressSubtitle, { color: colors.textSecondary }]}>
+                    Next: {objectives[0].title}
+                  </Text>
+                </View>
+              )}
+            </>
           )}
         </Card>
 
@@ -319,10 +362,8 @@ export default function MerchandiserDashboard() {
 
         <View style={styles.routeList}>
           {loading ? (
-            Array(2).fill(0).map((_, i) => (
-              <View key={i} style={{ marginBottom: 12 }}>
-                <CardSkeleton />
-              </View>
+            Array(3).fill(0).map((_, i) => (
+              <ListItemSkeleton key={i} />
             ))
           ) : (
             stores.slice(0, 3).map((store, idx) => {

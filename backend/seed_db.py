@@ -17,20 +17,6 @@ def seed():
     
     users = [
         {
-                "email": "aymen@gmail.com",
-                "first_name": "aymen",
-                "last_name": "derbel",
-                "hashed_password": "$pbkdf2-sha256$29000$ytl77z2H0HrP.T/HWItRyg$lgiAmsQ94I16bf.ZeYKpAAxbw3MNNjeE0X.yZDAo/9U",
-                "role": "admin"
-        },
-        {
-                "email": "aymen99@test.com",
-                "first_name": "aymen",
-                "last_name": "derbel",
-                "hashed_password": "$pbkdf2-sha256$29000$VYrxPicEgBDiXAsBAGDsvQ$wasnuZKPAS8vNiLjqPTpO5WZS0CvFImBxdlp2Nj.LmM",
-                "role": "supervisor"
-        },
-        {
                 "email": "malek@sup.com",
                 "first_name": "Malek",
                 "last_name": "Mami",
@@ -38,25 +24,46 @@ def seed():
                 "role": "supervisor"
         },
         {
-                "email": "merch@test.com",
+                "email": "aymen9@sup.com",
+                "first_name": "aymen",
+                "last_name": "derbel",
+                "hashed_password": "$pbkdf2-sha256$29000$VYrxPicEgBDiXAsBAGDsvQ$wasnuZKPAS8vNiLjqPTpO5WZS0CvFImBxdlp2Nj.LmM",
+                "role": "supervisor"
+        },
+        {
+                "email": "aymen@admin.com",
+                "first_name": "aymen",
+                "last_name": "derbel",
+                "hashed_password": "$pbkdf2-sha256$29000$ytl77z2H0HrP.T/HWItRyg$lgiAmsQ94I16bf.ZeYKpAAxbw3MNNjeE0X.yZDAo/9U",
+                "role": "admin"
+        },
+        {
+                "email": "merch@merch.com",
                 "first_name": "Marchandisant",
                 "last_name": "001",
                 "hashed_password": "$pbkdf2-sha256$29000$FMJ4T.l97723Vso5J0RISQ$PytITSGNFqxvvprtxt7OKgxc78Q/knn7cwkq./mbitA",
                 "role": "merchandiser"
         },
         {
-                "email": "admin@test.com",
-                "first_name": "A",
-                "last_name": "dmin",
-                "hashed_password": "$pbkdf2-sha256$29000$jpGSck5pjfEeQ6gVgrDW.g$d9VkglIyb7McvHFOalcuCKOu1RfwGxVm/3C1nB.Oykc",
-                "role": "admin"
-        },
-        {
-                "email": "supervisor@test.com",
+                "email": "supervisor@sup.com",
                 "first_name": "Mahmoud",
                 "last_name": "Livreur",
                 "hashed_password": "$pbkdf2-sha256$29000$RihlTCllDCGEcK51jjFG6A$iX9u.CCjZfOhleNz8cEa.yN1/8hra5ICfYxDpJp6JNs",
                 "role": "supervisor"
+        },
+        {
+                "email": "adel@merch.com",
+                "first_name": "Adel",
+                "last_name": "Mekni",
+                "hashed_password": "$pbkdf2-sha256$29000$BKB0bk0pZaw1BuAco/R.Tw$lxTAIIczGK2oK0zLwseajpRPN.z.yhivDGSma1rPguU",
+                "role": "merchandiser"
+        },
+        {
+                "email": "admin@admin.com",
+                "first_name": "Mohamed",
+                "last_name": "Mehrez",
+                "hashed_password": "$pbkdf2-sha256$29000$jpGSck5pjfEeQ6gVgrDW.g$d9VkglIyb7McvHFOalcuCKOu1RfwGxVm/3C1nB.Oykc",
+                "role": "admin"
         }
 ]
     
@@ -96,14 +103,14 @@ def seed():
         },
         {
                 "name": "Carrefour Market Hammam Sousse",
-                "address": "Avenue de la liberté, Sousse 4011",
+                "address": "Avenue de la libert\u00e9, Sousse 4011",
                 "latitude": 35.84403,
                 "longitude": 10.59011,
                 "city": "hammam sousse",
                 "type": "marketplace"
         },
         {
-                "name": "Carrefour market Sousse Cité Erriadh",
+                "name": "Carrefour market Sousse Cit\u00e9 Erriadh",
                 "address": "Rue des Nations Unis, Sousse 4023",
                 "latitude": 35.80407,
                 "longitude": 10.602444,
@@ -114,9 +121,25 @@ def seed():
                 "name": "el jem",
                 "address": "rue messadine",
                 "latitude": 35.283333,
-                "longitude": 10.700000,
+                "longitude": 10.683333,
                 "city": "el jem",
-                "type": "marketplace"
+                "type": "Mall"
+        },
+        {
+                "name": "Mall of Sousse",
+                "address": "Kalaa Kebira, Sousse 4060",
+                "latitude": 35.90372838059527,
+                "longitude": 10.54372992577671,
+                "city": "Kal\u00e2a Kebira",
+                "type": "Mall"
+        },
+        {
+                "name": "Soula center",
+                "address": "Sousse",
+                "latitude": 35.82776525363452,
+                "longitude": 10.640680734068155,
+                "city": "Tunisia",
+                "type": "Hypermarket"
         }
 ]
     

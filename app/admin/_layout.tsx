@@ -25,9 +25,9 @@ export default function AdminLayout() {
             <Stack.Screen name="profile" />
             <Stack.Screen name="before-after" />
             <Stack.Screen name="users" />
-            <Stack.Screen name="events" />
-            <Stack.Screen name="planning" />
             <Stack.Screen name="leave" />
+            <Stack.Screen name="planning" />
+            <Stack.Screen name="events" />
             <Stack.Screen name="notifications" />
             <Stack.Screen name="gsm" />
             <Stack.Screen name="documents" />

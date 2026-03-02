@@ -1,5 +1,4 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
  */
 
@@ -10,11 +9,11 @@ const tintColorDark = '#a5a457ff';
 
 export const Colors = {
   light: {
-    text: '#2F2F2F', // Dark Gray
-    textSecondary: '#4F3A1B', // Deep Brown
-    background: '#E5E5E5', // Snowy White
-    backgroundSecondary: '#F1D298', // Sandy Yellow
-    card: '#FAFAFA', // Off-white
+    text: '#2F2F2F',
+    textSecondary: '#4F3A1B',
+    background: '#f4f1eaff',
+    backgroundSecondary: '#F1D298',
+    card: '#FAFAFA',
     tint: tintColorLight,
     icon: '#4F3A1B',
     tabIconDefault: '#687076',
@@ -23,26 +22,26 @@ export const Colors = {
     success: '#16a34a',
     warning: '#f59e0b',
     error: '#dc2626',
-    info: '#A2DFF7', // Azure Blue
-    buttonBackground: '#F9E3B2', // Desert Yellow
+    info: '#A2DFF7',
+    buttonBackground: '#F9E3B2',
     buttonText: '#2F2F2F',
   },
   dark: {
-    text: '#E0E0E0', // Pale Off-white
-    textSecondary: '#D0D0D0', // Light Gray
-    background: '#2D2D2D', // Deep Matte Black
-    backgroundSecondary: '#3B3B3B', // Charcoal Gray
+    text: '#E0E0E0',
+    textSecondary: '#D0D0D0',
+    background: '#2D2D2D',
+    backgroundSecondary: '#3B3B3B',
     card: '#3B3B3B',
     tint: tintColorDark,
-    icon: '#DAA520', // Muted Gold
+    icon: '#DAA520',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
     border: '#334155',
     success: '#22c55e',
     warning: '#fbbf24',
     error: '#ef4444',
-    info: '#4071A0', // Premium Azure
-    buttonBackground: '#1D3B6D', // Dark Rich Blue
+    info: '#009688',
+    buttonBackground: '#1D3B6D',
     buttonText: '#E0E0E0',
   },
 };

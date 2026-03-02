@@ -8,10 +8,9 @@ class NotificationBase(BaseModel):
     type: str  # info, success, warning, alert
     icon: str
     action_link: Optional[str] = None
-    user_id: int
 
 class NotificationCreate(NotificationBase):
-    pass
+    user_id: int
 
 class NotificationUpdate(BaseModel):
     is_read: Optional[bool] = None

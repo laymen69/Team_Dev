@@ -27,6 +27,8 @@ Notifications.setNotificationHandler({
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
+import { NotificationProvider } from '../context/NotificationContext';
+
 export default function RootLayout() {
   const { fontsLoaded: appFontsLoaded } = useAppFonts();
   const [iconsLoaded, iconError] = useFonts({
@@ -53,7 +55,9 @@ export default function RootLayout() {
       <ThemeProvider>
         <ToastProvider>
           <AuthProvider>
-            <RootLayoutContent />
+            <NotificationProvider>
+              <RootLayoutContent />
+            </NotificationProvider>
           </AuthProvider>
         </ToastProvider>
       </ThemeProvider>
@@ -77,6 +81,7 @@ function RootLayoutContent() {
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="login" />
+        <Stack.Screen name="dashboard_web" />
         <Stack.Screen name="signup" />
         <Stack.Screen name="forgot-password" />
         <Stack.Screen name="about" />

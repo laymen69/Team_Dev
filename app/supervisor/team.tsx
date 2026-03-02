@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge } from '../../components/ui/Badge';
@@ -7,6 +8,7 @@ import { BottomNav } from '../../components/ui/BottomNav';
 import { Button } from '../../components/ui/Button';
 import { Card, StatCard } from '../../components/ui/Card';
 import { Header } from '../../components/ui/Header';
+import { ListSkeleton } from '../../components/ui/LoadingSkeleton';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { SUPERVISOR_NAV_ITEMS } from '../../constants/navigation';
@@ -63,6 +65,11 @@ export default function TeamPage() {
     const router = useRouter();
     const { theme } = useTheme();
     const colors = getColors(theme);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setTimeout(() => setLoading(false), 1000);
+    }, []);
 
     const handleCall = (phone: string) => Linking.openURL(`tel:${phone}`);
     const handleEmail = (email: string) => Linking.openURL(`mailto:${email}`);
@@ -94,75 +101,81 @@ export default function TeamPage() {
                 onAction={() => router.push('/supervisor/map')}
             />
 
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-                {merchandisers.map((item) => (
-                    <Card key={item.id} style={styles.userCard}>
-                        <View style={styles.cardHeader}>
-                            <View style={[styles.avatar, { backgroundColor: colors.primary + '15' }]}>
-                                <Text style={[styles.avatarText, { color: colors.primary }]}>{item.name.charAt(0)}</Text>
-                            </View>
-                            <View style={styles.userInfo}>
-                                <Text style={[styles.userName, { color: colors.text }]}>{item.name}</Text>
-                                <View style={styles.statusBadgeRow}>
-                                    {!item.gpsEnabled && item.status === 'active' ? (
-                                        <Badge label="GPS OFF" variant="danger" size="sm" />
-                                    ) : (
-                                        <Badge
-                                            label={item.status.toUpperCase()}
-                                            variant={item.status === 'active' ? 'success' : 'neutral'}
-                                            size="sm"
-                                        />
-                                    )}
+            {loading ? (
+                <View style={styles.content}>
+                    <ListSkeleton count={4} />
+                </View>
+            ) : (
+                <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+                    {merchandisers.map((item) => (
+                        <Card key={item.id} style={styles.userCard}>
+                            <View style={styles.cardHeader}>
+                                <View style={[styles.avatar, { backgroundColor: colors.primary + '15' }]}>
+                                    <Text style={[styles.avatarText, { color: colors.primary }]}>{item.name.charAt(0)}</Text>
+                                </View>
+                                <View style={styles.userInfo}>
+                                    <Text style={[styles.userName, { color: colors.text }]}>{item.name}</Text>
+                                    <View style={styles.statusBadgeRow}>
+                                        {!item.gpsEnabled && item.status === 'active' ? (
+                                            <Badge label="GPS OFF" variant="danger" size="sm" />
+                                        ) : (
+                                            <Badge
+                                                label={item.status.toUpperCase()}
+                                                variant={item.status === 'active' ? 'success' : 'neutral'}
+                                                size="sm"
+                                            />
+                                        )}
+                                    </View>
+                                </View>
+                                <View style={styles.progressCol}>
+                                    <Text style={[styles.progressVal, { color: colors.primary }]}>
+                                        {Math.round((item.visitsCompleted / item.visitsPlanned) * 100)}%
+                                    </Text>
+                                    <Text style={[styles.progressLab, { color: colors.textSecondary }]}>Visits</Text>
                                 </View>
                             </View>
-                            <View style={styles.progressCol}>
-                                <Text style={[styles.progressVal, { color: colors.primary }]}>
-                                    {Math.round((item.visitsCompleted / item.visitsPlanned) * 100)}%
-                                </Text>
-                                <Text style={[styles.progressLab, { color: colors.textSecondary }]}>Visits</Text>
+
+                            {item.status === 'active' && (
+                                <View style={[styles.locationBox, { backgroundColor: colors.surfaceSecondary }]}>
+                                    <Ionicons name="location" size={14} color={colors.primary} />
+                                    <Text style={[styles.locationText, { color: colors.textSecondary }]} numberOfLines={1}>
+                                        {item.currentLocation}
+                                    </Text>
+                                </View>
+                            )}
+
+                            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+                            <View style={styles.actions}>
+                                <Button
+                                    title="Call"
+                                    variant="ghost"
+                                    size="sm"
+                                    icon="call-outline"
+                                    onPress={() => handleCall(item.phone)}
+                                    style={styles.actionBtn}
+                                />
+                                <Button
+                                    title="Track"
+                                    variant="ghost"
+                                    size="sm"
+                                    icon="navigate-outline"
+                                    onPress={() => router.push('/supervisor/map')}
+                                    style={styles.actionBtn}
+                                />
+                                <Button
+                                    title="Email"
+                                    variant="ghost"
+                                    size="sm"
+                                    icon="mail-outline"
+                                    onPress={() => handleEmail(item.email)}
+                                    style={styles.actionBtn}
+                                />
                             </View>
-                        </View>
-
-                        {item.status === 'active' && (
-                            <View style={[styles.locationBox, { backgroundColor: colors.surfaceSecondary }]}>
-                                <Ionicons name="location" size={14} color={colors.primary} />
-                                <Text style={[styles.locationText, { color: colors.textSecondary }]} numberOfLines={1}>
-                                    {item.currentLocation}
-                                </Text>
-                            </View>
-                        )}
-
-                        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-                        <View style={styles.actions}>
-                            <Button
-                                title="Call"
-                                variant="ghost"
-                                size="sm"
-                                icon="call-outline"
-                                onPress={() => handleCall(item.phone)}
-                                style={styles.actionBtn}
-                            />
-                            <Button
-                                title="Track"
-                                variant="ghost"
-                                size="sm"
-                                icon="navigate-outline"
-                                onPress={() => router.push('/supervisor/map')}
-                                style={styles.actionBtn}
-                            />
-                            <Button
-                                title="Email"
-                                variant="ghost"
-                                size="sm"
-                                icon="mail-outline"
-                                onPress={() => handleEmail(item.email)}
-                                style={styles.actionBtn}
-                            />
-                        </View>
-                    </Card>
-                ))}
-            </ScrollView>
+                        </Card>
+                    ))}
+                </ScrollView>
+            )}
 
             <BottomNav items={SUPERVISOR_NAV_ITEMS} activeRoute="/supervisor/team" />
         </SafeAreaView>

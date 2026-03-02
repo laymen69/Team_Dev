@@ -61,6 +61,30 @@ export const CardSkeleton: React.FC = () => (
     </View>
 );
 
+export const ListItemSkeleton: React.FC = () => (
+    <View style={styles.listItemSkeleton}>
+        <LoadingSkeleton width={48} height={48} borderRadius={24} />
+        <View style={styles.listItemContent}>
+            <LoadingSkeleton width="40%" height={16} style={styles.mb4} />
+            <LoadingSkeleton width="70%" height={12} />
+        </View>
+    </View>
+);
+
+export const ListSkeleton: React.FC<{ count?: number }> = ({ count = 5 }) => (
+    <View style={styles.listSkeleton}>
+        {Array.from({ length: count }).map((_, i) => (
+            <ListItemSkeleton key={i} />
+        ))}
+    </View>
+);
+
+export const BannerSkeleton: React.FC = () => (
+    <View style={styles.bannerSkeleton}>
+        <LoadingSkeleton width="100%" height={180} borderRadius={DesignTokens.borderRadius.lg} />
+    </View>
+);
+
 const styles = StyleSheet.create({
     cardSkeleton: {
         flex: 1,
@@ -70,6 +94,22 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
         borderWidth: 1,
         borderColor: 'transparent',
+    },
+    listItemSkeleton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: DesignTokens.spacing.md,
+        gap: DesignTokens.spacing.md,
+    },
+    listItemContent: {
+        flex: 1,
+    },
+    listSkeleton: {
+        padding: DesignTokens.spacing.md,
+        gap: DesignTokens.spacing.sm,
+    },
+    bannerSkeleton: {
+        padding: DesignTokens.spacing.lg,
     },
     mb8: { marginBottom: 8 },
     mb4: { marginBottom: 4 },

@@ -76,17 +76,38 @@ export const AuthService = {
             const payload = decodeJWT(accessToken);
             if (!payload) throw new Error('Failed to decode token');
 
-            const user: User = {
-                id: payload.id || '0',
-                email: email,
-                firstName: payload.first_name || 'User',
-                lastName: payload.last_name || '',
-                role: payload.role || 'merchandiser',
-                password: ''
-            };
-
+            // Save token first so apiClient can use it for the next request
             await AsyncStorage.setItem('userToken', accessToken);
-            return user;
+
+            // Fetch full profile from DB (includes profileImage, phone, profileZone…)
+            try {
+                const meResponse = await apiClient.get('/api/users/me');
+                const me = meResponse.data;
+                const user: User = {
+                    id: me.id?.toString() || payload.id || '0',
+                    email: me.email || email,
+                    firstName: me.first_name || payload.first_name || 'User',
+                    lastName: me.last_name || payload.last_name || '',
+                    role: me.role || payload.role || 'merchandiser',
+                    phone: me.phone || undefined,
+                    status: me.status || undefined,
+                    profileZone: me.profile_zone || undefined,
+                    profileImage: me.profile_image || null,
+                    password: '',
+                };
+                return user;
+            } catch {
+                // Fallback to JWT-only data if /me call fails
+                const user: User = {
+                    id: payload.id || '0',
+                    email: email,
+                    firstName: payload.first_name || 'User',
+                    lastName: payload.last_name || '',
+                    role: payload.role || 'merchandiser',
+                    password: '',
+                };
+                return user;
+            }
         } catch (error: any) {
             console.error('[Auth] Login error:', error);
             const message = error.response?.data?.detail || error.message || 'Login failed';

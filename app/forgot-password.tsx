@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: Fonts.body,
+    fontFamily: Fonts.subheading,
     color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 24,
@@ -201,9 +201,10 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: 'white',
-    fontSize: 18,
-    fontFamily: Fonts.headingSemiBold,
+    fontSize: 22,
+    fontFamily: Fonts.cta,
     marginRight: 8,
+    letterSpacing: 1,
   },
   loginLink: {
     alignItems: 'center',

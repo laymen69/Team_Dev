@@ -35,6 +35,7 @@ export default function MerchandiserLayout() {
             <Stack.Screen name="documents" />
             <Stack.Screen name="map" />
             <Stack.Screen name="complaints" />
+            <Stack.Screen name="articles" />
             <Stack.Screen name="privacy" />
             <Stack.Screen name="help" />
         </Stack>

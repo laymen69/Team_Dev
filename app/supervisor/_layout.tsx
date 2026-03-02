@@ -18,8 +18,9 @@ export default function SupervisorLayout() {
             screenOptions={{
                 headerShown: false,
                 animation: 'fade',
-                animationDuration: 50,}}>
-                    
+                animationDuration: 50,
+            }}>
+
             <Stack.Screen name="index" />
             <Stack.Screen name="dashboard" />
             <Stack.Screen name="team" />
@@ -31,6 +32,8 @@ export default function SupervisorLayout() {
             <Stack.Screen name="documents" />
             <Stack.Screen name="notifications" />
             <Stack.Screen name="leave" />
+            <Stack.Screen name="articles" />
+            <Stack.Screen name="complaints" />
             <Stack.Screen name="privacy" />
             <Stack.Screen name="help" />
         </Stack>

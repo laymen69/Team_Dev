@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime
@@ -18,6 +18,27 @@ from app.schemas.tracking import (
 )
 
 router = APIRouter()
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except:
+                pass
+
+manager = ConnectionManager()
 
 def calculate_distance(lat1, lon1, lat2, lon2):
     """Calculate distance in meters between two GPS points."""
@@ -202,3 +223,16 @@ def get_active_session(
         "workday": workday,
         "visit": visit
     }
+
+@router.websocket("/ws")
+async def websocket_tracking(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            # Expecting data formatted as: {"type": "location_update", "user_id": 1, "lat": 30.0, "lng": -5.0}
+            if data.get("type") == "location_update":
+                await manager.broadcast(data)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+

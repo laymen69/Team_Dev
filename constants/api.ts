@@ -43,3 +43,10 @@ export const API_ENDPOINTS = {
     NOTIFICATIONS: `${API_BASE_URL}/api/notifications/`,
     REPORTS: `${API_BASE_URL}/api/reports/`,
 };
+
+export const getFullImageUrl = (path?: string | null) => {
+    if (!path) return null;
+    if (path.startsWith('http') || path.startsWith('data:image')) return path;
+    if (path.startsWith('/')) return `${API_BASE_URL}${path}`;
+    return `${API_BASE_URL}/${path}`;
+};

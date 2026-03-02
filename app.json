@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/apps.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/images/web.png",
       "resizeMode": "contain",
@@ -20,15 +20,10 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/apps.png",
+        "foregroundImage": "./assets/images/merch.png",
         "backgroundColor": "#a8e7edff"
       },
-      "package": "com.teamdev.merchandisingteam",
-      "config": {
-        "googleMaps": {
-          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
-        }
-      }
+      "package": "com.teamdev.merchandisingteam"
     },
     "web": {
       "favicon": "./assets/images/web.png"

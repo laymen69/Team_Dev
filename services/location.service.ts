@@ -10,7 +10,7 @@ export interface LocationPoint {
 }
 
 export interface WorkdaySession {
-    id: string; // Server DB ID
+    id: string;
     startTime: number;
     endTime: number | null;
     startLocation: LocationPoint;
@@ -19,7 +19,7 @@ export interface WorkdaySession {
 }
 
 export interface VisitSession {
-    id: string; // Server DB ID
+    id: string;
     gmsId: number;
     startTime: number;
     status: 'in_progress' | 'completed';

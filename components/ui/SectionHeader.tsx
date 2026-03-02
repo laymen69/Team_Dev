@@ -70,6 +70,6 @@ const styles = StyleSheet.create({
     },
     action: {
         ...DesignTokens.typography.caption,
-        fontFamily: Fonts.bodyBold,
+        fontFamily: Fonts.secondaryBold,
     },
 });

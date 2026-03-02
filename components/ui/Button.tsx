@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { useTheme } from '../../context/ThemeContext';
+import { Fonts } from '../../hooks/useFonts';
 import { PremiumPressable } from './PremiumPressable';
 
 type ButtonVariant = 'primary' | 'outline' | 'ghost' | 'danger' | 'secondary' | 'success' | 'warning';
@@ -206,6 +207,8 @@ const styles = StyleSheet.create({
     },
     text: {
         textAlign: 'left',
+        fontFamily: Fonts.cta,
+        letterSpacing: 1,
     },
     subtitle: {
         ...DesignTokens.typography.caption,

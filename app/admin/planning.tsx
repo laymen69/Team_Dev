@@ -1,16 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
+import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     FlatList,
+    RefreshControl,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Badge } from '../../components/ui/Badge';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Card } from '../../components/ui/Card';
 import { Header } from '../../components/ui/Header';
@@ -18,148 +20,212 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { ADMIN_NAV_ITEMS } from '../../constants/navigation';
 import { useTheme } from '../../context/ThemeContext';
-
-const initialRequests = [
-    {
-        id: '1',
-        name: 'Youssef El Amrani',
-        role: 'Merchandiser',
-        type: 'Leave Request',
-        subType: 'Sick leave',
-        startDate: '2026-02-12',
-        endDate: '2026-02-15',
-        reason: 'Severe flu and doctor recommended 3 days rest.',
-        status: 'pending'
-    },
-    {
-        id: '2',
-        name: 'Karim Mansouri',
-        role: 'Supervisor',
-        type: 'Route Change',
-        subType: 'Zone B Adjustment',
-        startDate: '2026-02-10',
-        endDate: '2026-02-10',
-        reason: 'Request to modify Tuesday route to include new store in Bab Ezzouar.',
-        status: 'pending'
-    },
-    {
-        id: '3',
-        name: 'Sara Tazi',
-        role: 'Merchandiser',
-        type: 'Schedule Update',
-        subType: 'Early Shift',
-        startDate: '2026-02-11',
-        endDate: '2026-02-11',
-        reason: 'Administrative appointment in the afternoon.',
-        status: 'approved'
-    },
-    {
-        id: '4',
-        name: 'Ahmed Benali',
-        role: 'Supervisor',
-        type: 'Leave Request',
-        subType: 'Annual leave',
-        startDate: '2026-03-01',
-        endDate: '2026-03-10',
-        reason: 'Family vacation trip.',
-        status: 'pending'
-    }
-];
+import { GMSService } from '../../services/gms.service';
+import { Notification, NotificationService } from '../../services/notification.service';
 
 export default function PlanningPage() {
     const router = useRouter();
     const { theme } = useTheme();
     const colors = getColors(theme);
 
-    const [selectedTab, setSelectedTab] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
-    const [requests, setRequests] = useState(initialRequests);
+    const [selectedTab, setSelectedTab] = useState<'pending' | 'all'>('pending');
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-    const filteredRequests = requests.filter(req =>
-        selectedTab === 'all' || req.status === selectedTab
-    );
-
-    const handleProcessRequest = (id: string, action: 'approve' | 'reject') => {
-        setRequests(prev => prev.map(req =>
-            req.id === id ? { ...req, status: action === 'approve' ? 'approved' : 'rejected' } : req
-        ));
-        Alert.alert('Action Confirmed', `The request has been ${action === 'approve' ? 'approved' : 'rejected'} successfully.`);
-    };
-
-    const getStatusVariant = (status: string): any => {
-        switch (status) {
-            case 'pending': return 'warning';
-            case 'approved': return 'success';
-            case 'rejected': return 'danger';
-            default: return 'neutral';
+    const loadNotifications = async () => {
+        try {
+            const data = await NotificationService.getNotifications();
+            setNotifications(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('Load requests error:', error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
         }
     };
 
-    const getTypeIcon = (type: string) => {
+    useEffect(() => {
+        loadNotifications();
+    }, []);
+
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        loadNotifications();
+    }, []);
+
+    // Filter to only show actionable types
+    const requestsList = notifications.filter(notif =>
+        ['new_gms', 'report', 'alert'].includes(notif.type)
+    );
+
+    const handleDeleteNotification = async (id: number) => {
+        const success = await NotificationService.deleteNotification(id);
+        if (success) {
+            setNotifications(prev => prev.filter(n => n.id !== id));
+        } else {
+            Alert.alert('Error', 'Failed to delete notification');
+        }
+    };
+
+    const handleActionOption = async (action: 'approve' | 'wait' | 'delete' | 'fixed', item: Notification) => {
+        try {
+            switch (action) {
+                case 'approve':
+                    if (item.action_link) {
+                        const payload = JSON.parse(item.action_link);
+                        const newGms = await GMSService.create(payload);
+
+                        if (newGms) {
+                            await NotificationService.sendNotification({
+                                user_id: item.user_id,
+                                title: 'New GMS Approved',
+                                message: `Your request to add ${payload.name} has been approved.`,
+                                type: 'success',
+                                icon: 'checkmark-circle'
+                            });
+                            await handleDeleteNotification(item.id);
+                            Alert.alert('Success', 'GMS approved and created.');
+                        } else {
+                            Alert.alert('Error', 'Failed to create GMS in database.');
+                        }
+                    }
+                    break;
+                case 'fixed':
+                    await NotificationService.sendNotification({
+                        user_id: item.user_id,
+                        title: 'Report Fixed',
+                        message: `The issue you reported has been resolved.`,
+                        type: 'success',
+                        icon: 'build'
+                    });
+                    await handleDeleteNotification(item.id);
+                    Alert.alert('Success', 'Sender notified and report marked fixed.');
+                    break;
+                case 'wait':
+                    Alert.alert('Pending', 'Request kept in pending state.');
+                    if (!item.is_read) {
+                        await NotificationService.markAsRead(item.id);
+                        setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, is_read: true } : n));
+                    }
+                    break;
+                case 'delete':
+                    Alert.alert('Confirm', 'Are you sure you want to delete this request?', [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                            text: 'Delete',
+                            style: 'destructive',
+                            onPress: () => handleDeleteNotification(item.id)
+                        }
+                    ]);
+                    break;
+            }
+        } catch (error) {
+            console.error('Action error', error);
+            Alert.alert('Error', 'An error occurred while processing the action.');
+        }
+    };
+
+    const formatTime = (dateStr: string) => {
+        try {
+            return formatDistanceToNow(new Date(dateStr), { addSuffix: true });
+        } catch (e) {
+            return dateStr;
+        }
+    };
+
+    const getIconConfig = (type: string) => {
         switch (type) {
-            case 'Leave Request': return 'calendar';
-            case 'Route Change': return 'navigate';
-            case 'Schedule Update': return 'time';
-            default: return 'document-text';
+            case 'new_gms': return { icon: 'storefront', color: colors.success };
+            case 'report':
+            case 'alert': return { icon: 'alert-circle', color: colors.danger };
+            default: return { icon: 'document-text', color: colors.primary };
         }
     };
 
-    const renderItem = ({ item }: { item: any }) => (
-        <Card style={styles.requestCard}>
-            <View style={styles.cardHeader}>
-                <View style={[styles.avatar, { backgroundColor: colors.surfaceSecondary }]}>
-                    <Text style={[styles.avatarText, { color: colors.primary }]}>{item.name.charAt(0)}</Text>
-                </View>
-                <View style={styles.headerInfo}>
-                    <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
-                    <Text style={[styles.role, { color: colors.textSecondary }]}>{item.role}</Text>
-                </View>
-                <Badge label={item.status.toUpperCase()} variant={getStatusVariant(item.status)} size="sm" />
-            </View>
+    const getRequestTypeLabel = (type: string) => {
+        switch (type) {
+            case 'new_gms': return 'New GMS Request';
+            case 'report':
+            case 'alert': return 'Field Report / Alert';
+            default: return 'Request';
+        }
+    };
 
-            <View style={[styles.details, { backgroundColor: colors.surfaceSecondary }]}>
-                <View style={styles.detailRow}>
-                    <Ionicons name={getTypeIcon(item.type) as any} size={16} color={colors.primary} />
-                    <Text style={[styles.typeText, { color: colors.text }]}>{item.type} • {item.subType}</Text>
-                </View>
-                <View style={styles.detailRow}>
-                    <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
-                    <Text style={[styles.dateText, { color: colors.textSecondary }]}>
-                        {item.startDate === item.endDate ? item.startDate : `${item.startDate} to ${item.endDate}`}
-                    </Text>
-                </View>
-                <Text style={[styles.reason, { color: colors.textSecondary }]} numberOfLines={2}>
-                    {item.reason}
-                </Text>
-            </View>
+    const renderItem = ({ item }: { item: Notification }) => {
+        const config = getIconConfig(item.type);
 
-            {item.status === 'pending' && (
+        return (
+            <Card style={styles.requestCard}>
+                <View style={[styles.cardHeader, { borderBottomColor: colors.border }]}>
+                    <View style={styles.headerRow}>
+                        <View style={[styles.iconContainer, { backgroundColor: config.color + '15' }]}>
+                            <Ionicons name={config.icon as any} size={20} color={config.color} />
+                        </View>
+                        <View style={styles.headerInfo}>
+                            <Text style={[styles.typeText, { color: colors.text }]}>{getRequestTypeLabel(item.type)}</Text>
+                            <Text style={[styles.timeText, { color: colors.textSecondary }]}>{formatTime(item.created_at)}</Text>
+                        </View>
+                    </View>
+                </View>
+
+                <View style={[styles.details, { backgroundColor: colors.surfaceSecondary }]}>
+                    <Text style={[styles.title, { color: colors.text }]}>{item.title}</Text>
+                    <Text style={[styles.message, { color: colors.textSecondary }]}>{item.message}</Text>
+                </View>
+
                 <View style={styles.actions}>
+                    {item.type === 'new_gms' && (
+                        <TouchableOpacity
+                            style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+                            onPress={() => handleActionOption('approve', item)}
+                        >
+                            <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+                            <Text style={styles.actionBtnText}>Approve GMS</Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {(item.type === 'report' || item.type === 'alert') && (
+                        <TouchableOpacity
+                            style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+                            onPress={() => handleActionOption('fixed', item)}
+                        >
+                            <Ionicons name="build-outline" size={18} color="#fff" />
+                            <Text style={styles.actionBtnText}>Mark Fixed</Text>
+                        </TouchableOpacity>
+                    )}
+
                     <TouchableOpacity
-                        style={[styles.actionBtn, styles.rejectBtn, { borderColor: colors.danger }]}
-                        onPress={() => handleProcessRequest(item.id, 'reject')}
+                        style={[styles.actionBtn, { backgroundColor: colors.warning }]}
+                        onPress={() => handleActionOption('wait', item)}
                     >
-                        <Text style={[styles.rejectText, { color: colors.danger }]}>Reject</Text>
+                        <Ionicons name="hourglass-outline" size={18} color="#fff" />
+                        <Text style={styles.actionBtnText}>Pending</Text>
                     </TouchableOpacity>
+
                     <TouchableOpacity
-                        style={[styles.actionBtn, styles.approveBtn, { backgroundColor: colors.primary }]}
-                        onPress={() => handleProcessRequest(item.id, 'approve')}
+                        style={[styles.actionBtn, { backgroundColor: colors.danger }]}
+                        onPress={() => handleActionOption('delete', item)}
                     >
-                        <Text style={styles.approveText}>Approve</Text>
+                        <Ionicons name="trash-outline" size={18} color="#fff" />
                     </TouchableOpacity>
                 </View>
-            )}
-        </Card>
-    );
-
+            </Card>
+        );
+    };
+    const onBack = () => {
+        router.replace('/admin');
+    };
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <Header
-                title="Planning & Requests"
+                title="Management Requests"
                 showBack
+                onBack={onBack}
             />
 
             <View style={[styles.tabBar, { backgroundColor: colors.surface }]}>
-                {(['pending', 'approved', 'rejected', 'all'] as const).map(tab => (
+                {(['pending', 'all'] as const).map(tab => (
                     <TouchableOpacity
                         key={tab}
                         onPress={() => setSelectedTab(tab)}
@@ -172,26 +238,33 @@ export default function PlanningPage() {
                             styles.tabText,
                             { color: selectedTab === tab ? colors.primary : colors.textSecondary }
                         ]}>
-                            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                            {tab.charAt(0).toUpperCase() + tab.slice(1)} Requests
                         </Text>
                     </TouchableOpacity>
                 ))}
             </View>
 
-            <FlatList
-                data={filteredRequests}
-                renderItem={renderItem}
-                keyExtractor={item => item.id}
-                contentContainerStyle={styles.list}
-                showsVerticalScrollIndicator={false}
-                ListHeaderComponent={<SectionHeader title="Staff Requirements" />}
-                ListEmptyComponent={
-                    <View style={styles.empty}>
-                        <Ionicons name="calendar-outline" size={64} color={colors.textMuted} />
-                        <Text style={{ color: colors.textSecondary, marginTop: 16 }}>No requests found</Text>
-                    </View>
-                }
-            />
+            {loading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+            ) : (
+                <FlatList
+                    data={requestsList}
+                    renderItem={renderItem}
+                    keyExtractor={item => item.id.toString()}
+                    contentContainerStyle={styles.list}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+                    ListHeaderComponent={<SectionHeader title="Actionable Notifications" />}
+                    ListEmptyComponent={
+                        <View style={styles.empty}>
+                            <Ionicons name="checkmark-done-circle-outline" size={64} color={colors.textMuted} />
+                            <Text style={{ color: colors.textSecondary, marginTop: 16 }}>No pending requests at the moment</Text>
+                        </View>
+                    }
+                />
+            )}
 
             <BottomNav items={ADMIN_NAV_ITEMS} activeRoute="/admin/planning" />
         </SafeAreaView>
@@ -219,9 +292,14 @@ const styles = StyleSheet.create({
         ...DesignTokens.typography.caption,
         fontWeight: 'bold',
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     list: {
         padding: DesignTokens.spacing.lg,
-        paddingBottom: 100,
+        paddingBottom: 120,
         gap: DesignTokens.spacing.md,
     },
     requestCard: {
@@ -229,72 +307,59 @@ const styles = StyleSheet.create({
         gap: DesignTokens.spacing.md,
     },
     cardHeader: {
+        borderBottomWidth: 1,
+        paddingBottom: DesignTokens.spacing.sm,
+    },
+    headerRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: DesignTokens.spacing.sm,
     },
-    avatar: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+    iconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    avatarText: {
-        ...DesignTokens.typography.h3,
-    },
     headerInfo: {
         flex: 1,
-        marginLeft: DesignTokens.spacing.md,
     },
-    name: {
+    typeText: {
         ...DesignTokens.typography.bodyBold,
     },
-    role: {
+    timeText: {
         ...DesignTokens.typography.tiny,
     },
     details: {
         padding: DesignTokens.spacing.md,
         borderRadius: 12,
-        gap: 8,
+        gap: 4,
     },
-    detailRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    typeText: {
+    title: {
         ...DesignTokens.typography.caption,
         fontWeight: 'bold',
     },
-    dateText: {
-        ...DesignTokens.typography.tiny,
-    },
-    reason: {
+    message: {
         ...DesignTokens.typography.caption,
         lineHeight: 18,
     },
     actions: {
         flexDirection: 'row',
-        gap: DesignTokens.spacing.md,
+        gap: DesignTokens.spacing.sm,
     },
     actionBtn: {
         flex: 1,
-        height: 44,
-        borderRadius: 12,
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        height: 40,
+        borderRadius: 10,
+        gap: 4,
     },
-    rejectBtn: {
-        borderWidth: 1.5,
-    },
-    rejectText: {
+    actionBtnText: {
         ...DesignTokens.typography.caption,
-        fontWeight: 'bold',
-    },
-    approveBtn: {},
-    approveText: {
         color: '#fff',
-        ...DesignTokens.typography.caption,
         fontWeight: 'bold',
     },
     empty: {

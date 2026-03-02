@@ -5,6 +5,9 @@ from app.db.session import SessionLocal
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, UserBase, UserUpdate
 from app.core.security import get_password_hash
+import base64
+import os
+import uuid
 
 router = APIRouter()
 
@@ -32,10 +35,24 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    
+    image_url = user.profile_image
+    if image_url and image_url.startswith("data:image"):
+        try:
+            header, encoded = image_url.split(",", 1)
+            ext = header.split(";")[0].split("/")[1]
+            filename = f"{uuid.uuid4()}.{ext}"
+            filepath = os.path.join("uploads", "avatars", filename)
+            with open(filepath, "wb") as f:
+                f.write(base64.b64decode(encoded))
+            image_url = f"/static/avatars/{filename}"
+        except Exception as e:
+            image_url = None
+
     hashed_password = get_password_hash(user.password)
     db_user = User(
         email=user.email,
-        profile_image=user.profile_image,
+        profile_image=image_url,
         first_name=user.first_name,
         last_name=user.last_name,
         hashed_password=hashed_password,
@@ -66,6 +83,24 @@ def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get
         hashed_password = get_password_hash(update_data["password"])
         update_data["hashed_password"] = hashed_password
         del update_data["password"]
+
+    if "profile_image" in update_data:
+        img_data = update_data["profile_image"]
+        if img_data is None:
+            pass
+        elif img_data and img_data.startswith("data:image"):
+            try:
+                header, encoded = img_data.split(",", 1)
+                ext = header.split(";")[0].split("/")[1]
+                filename = f"{uuid.uuid4()}.{ext}"
+                filepath = os.path.join("uploads", "avatars", filename)
+                with open(filepath, "wb") as f:
+                    f.write(base64.b64decode(encoded))
+                update_data["profile_image"] = f"/static/avatars/{filename}"
+            except Exception as e:
+                del update_data["profile_image"]
+        else:
+            del update_data["profile_image"]
 
     for key, value in update_data.items():
         if value is not None:

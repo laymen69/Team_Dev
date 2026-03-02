@@ -89,44 +89,60 @@ export const DesignTokens = {
     },
     typography: {
         h1: {
-            fontFamily: 'PlayfairDisplay_700Bold',
+            fontFamily: 'Montserrat_700Bold',
             fontSize: 32,
             lineHeight: 40,
             letterSpacing: -0.5,
         },
         h2: {
-            fontFamily: 'PlayfairDisplay_700Bold',
+            fontFamily: 'Montserrat_700Bold',
             fontSize: 24,
             lineHeight: 32,
             letterSpacing: -0.3,
         },
         h3: {
-            fontFamily: 'PlayfairDisplay_600SemiBold',
+            fontFamily: 'Montserrat_600SemiBold',
             fontSize: 20,
             lineHeight: 28,
         },
+        subheading: {
+            fontFamily: 'PlayfairDisplay_600SemiBold',
+            fontSize: 18,
+            lineHeight: 26,
+        },
         body: {
-            fontFamily: 'PlusJakartaSans_400Regular',
+            fontFamily: 'Roboto_400Regular',
             fontSize: 16,
             lineHeight: 24,
         },
         bodyBold: {
-            fontFamily: 'PlusJakartaSans_600SemiBold',
+            fontFamily: 'Roboto_700Bold',
             fontSize: 16,
             lineHeight: 24,
         },
+        secondary: {
+            fontFamily: 'Lato_400Regular',
+            fontSize: 15,
+            lineHeight: 22,
+        },
         caption: {
-            fontFamily: 'PlusJakartaSans_500Medium',
+            fontFamily: 'Lato_400Regular',
             fontSize: 14,
             lineHeight: 20,
             color: '#64748B',
         },
         tiny: {
-            fontFamily: 'PlusJakartaSans_700Bold',
+            fontFamily: 'Lato_700Bold',
             fontSize: 12,
             lineHeight: 16,
             textTransform: 'uppercase' as const,
             letterSpacing: 1,
+        },
+        button: {
+            fontFamily: 'BebasNeue_400Regular',
+            fontSize: 18,
+            letterSpacing: 1,
+            textTransform: 'uppercase' as const,
         },
     },
 };

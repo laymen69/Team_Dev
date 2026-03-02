@@ -1,88 +1,59 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+    Alert, FlatList,
+    Modal, ScrollView,
+    StyleSheet, Text, TextInput, TouchableOpacity, View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge } from '../../components/ui/Badge';
 import { BottomNav } from '../../components/ui/BottomNav';
+import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Header } from '../../components/ui/Header';
+import { ListSkeleton } from '../../components/ui/LoadingSkeleton';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { ADMIN_NAV_ITEMS } from '../../constants/navigation';
 import { useTheme } from '../../context/ThemeContext';
-
-const initialRequests = [
-    {
-        id: '1',
-        name: 'Youssef El Amrani',
-        role: 'Merchandiser',
-        type: 'Leave Request',
-        subType: 'Sick leave',
-        startDate: '2026-02-12',
-        endDate: '2026-02-15',
-        reason: 'Severe flu and doctor recommended 3 days rest.',
-        status: 'pending'
-    },
-    {
-        id: '2',
-        name: 'Karim Mansouri',
-        role: 'Supervisor',
-        type: 'Route Change',
-        subType: 'Zone B Adjustment',
-        startDate: '2026-02-10',
-        endDate: '2026-02-10',
-        reason: 'Request to modify Tuesday route to include new store in Bab Ezzouar.',
-        status: 'pending'
-    },
-    {
-        id: '3',
-        name: 'Sara Tazi',
-        role: 'Merchandiser',
-        type: 'Schedule Update',
-        subType: 'Early Shift',
-        startDate: '2026-02-11',
-        endDate: '2026-02-11',
-        reason: 'Administrative appointment in the afternoon.',
-        status: 'approved'
-    },
-    {
-        id: '4',
-        name: 'Ahmed Benali',
-        role: 'Supervisor',
-        type: 'Leave Request',
-        subType: 'Annual leave',
-        startDate: '2026-03-01',
-        endDate: '2026-03-10',
-        reason: 'Family vacation trip.',
-        status: 'pending'
-    }
-];
+import { LeaveRequest, LeaveService } from '../../services/leave.service';
 
 export default function LeavePage() {
     const router = useRouter();
     const { theme } = useTheme();
     const colors = getColors(theme);
-    const isDark = theme === 'dark';
+
     const [selectedTab, setSelectedTab] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
-    const [requests, setRequests] = useState(initialRequests);
+    const [requests, setRequests] = useState<LeaveRequest[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    // Review Modal
+    const [reviewing, setReviewing] = useState<LeaveRequest | null>(null);
+    const [adminComment, setAdminComment] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const load = async () => {
+        setLoading(true);
+        const data = await LeaveService.getAll();
+        setRequests(data);
+        setLoading(false);
+    };
+
+    useEffect(() => { load(); }, []);
 
     const filteredRequests = requests.filter(req =>
         selectedTab === 'all' || req.status === selectedTab
     );
 
-    const handleProcessRequest = (id: string, action: 'approve' | 'reject') => {
-        setRequests(prev => prev.map(req =>
-            req.id === id ? { ...req, status: action === 'approve' ? 'approved' : 'rejected' } : req
-        ));
-        Alert.alert('Success', `Request ${action}d successfully.`);
+    const handleProcessRequest = async (status: 'approved' | 'rejected') => {
+        if (!reviewing) return;
+        setIsSaving(true);
+        await LeaveService.review(reviewing.id, status, adminComment);
+        setIsSaving(false);
+        setReviewing(null);
+        Alert.alert('Success', `Request ${status} successfully.`);
+        load();
     };
 
     const getStatusVariant = (status: string): any => {
@@ -94,60 +65,55 @@ export default function LeavePage() {
         }
     };
 
-    const getTypeIcon = (type: string) => {
-        switch (type) {
-            case 'Leave Request': return 'calendar';
-            case 'Route Change': return 'navigate';
-            case 'Schedule Update': return 'time';
-            default: return 'document';
-        }
-    };
-
-    const renderItem = ({ item }: { item: any }) => (
+    const renderItem = ({ item }: { item: LeaveRequest }) => (
         <Card style={styles.card}>
             <View style={styles.cardHeader}>
                 <View style={[styles.avatar, { backgroundColor: colors.primary + '15' }]}>
-                    <Text style={[styles.avatarText, { color: colors.primary }]}>{item.name.charAt(0)}</Text>
+                    <Text style={[styles.avatarText, { color: colors.primary }]}>{item.requester_name.charAt(0)}</Text>
                 </View>
                 <View style={styles.headerText}>
-                    <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
-                    <Text style={[styles.role, { color: colors.textSecondary }]}>{item.role}</Text>
+                    <Text style={[styles.name, { color: colors.text }]}>{item.requester_name}</Text>
+                    <Text style={[styles.role, { color: colors.textSecondary }]}>{item.requester_role}</Text>
                 </View>
-                <Badge label={item.status.toUpperCase()} variant={getStatusVariant(item.status)} />
+                <Badge label={item.status.toUpperCase()} variant={getStatusVariant(item.status)} size="sm" />
             </View>
 
             <View style={[styles.details, { backgroundColor: colors.surfaceSecondary }]}>
                 <View style={styles.detailRow}>
-                    <Ionicons name={getTypeIcon(item.type) as any} size={16} color={colors.primary} />
-                    <Text style={[styles.typeText, { color: colors.text }]}>{item.type} • {item.subType}</Text>
+                    <Ionicons name="calendar" size={16} color={colors.primary} />
+                    <Text style={[styles.typeText, { color: colors.text }]}>
+                        {item.leave_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                    </Text>
                 </View>
                 <View style={styles.detailRow}>
                     <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
                     <Text style={[styles.dateText, { color: colors.textSecondary }]}>
-                        {item.startDate === item.endDate ? item.startDate : `${item.startDate} to ${item.endDate}`}
+                        {item.start_date === item.end_date ? item.start_date : `${item.start_date} to ${item.end_date}`}
                     </Text>
                 </View>
-                <Text style={[styles.reason, { color: colors.textSecondary }]} numberOfLines={2}>
-                    {item.reason}
-                </Text>
+                {item.reason && (
+                    <Text style={[styles.reason, { color: colors.textSecondary }]} numberOfLines={2}>
+                        {item.reason}
+                    </Text>
+                )}
             </View>
 
             {item.status === 'pending' && (
                 <View style={styles.actions}>
-                    <TouchableOpacity
-                        style={[styles.actionBtn, styles.rejectBtn, { borderColor: colors.danger }]}
-                        onPress={() => handleProcessRequest(item.id, 'reject')}
-                    >
-                        <Ionicons name="close-circle-outline" size={18} color={colors.danger} />
-                        <Text style={[styles.rejectText, { color: colors.danger }]}>Reject</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.actionBtn, styles.approveBtn, { backgroundColor: colors.primary }]}
-                        onPress={() => handleProcessRequest(item.id, 'approve')}
-                    >
-                        <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
-                        <Text style={styles.approveText}>Approve</Text>
-                    </TouchableOpacity>
+                    <Button
+                        title="Review"
+                        size="sm"
+                        icon="eye-outline"
+                        onPress={() => { setReviewing(item); setAdminComment(''); }}
+                        style={{ flex: 1 }}
+                    />
+                </View>
+            )}
+
+            {item.admin_comment && item.status !== 'pending' && (
+                <View style={[styles.responseBox, { borderColor: item.status === 'approved' ? colors.success + '40' : colors.danger + '40' }]}>
+                    <Ionicons name={item.status === 'approved' ? "checkmark-circle" : "close-circle"} size={14} color={item.status === 'approved' ? colors.success : colors.danger} />
+                    <Text style={[styles.responseText, { color: colors.text }]}>{item.admin_comment}</Text>
                 </View>
             )}
         </Card>
@@ -155,45 +121,93 @@ export default function LeavePage() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-            <Header
-                title="Leaving Requests"
-                showBack
-            />
+            <Header title="Leave Requests" showBack />
 
             <View style={[styles.tabBar, { backgroundColor: colors.surface }]}>
                 {(['pending', 'approved', 'rejected', 'all'] as const).map(tab => (
                     <TouchableOpacity
                         key={tab}
                         onPress={() => setSelectedTab(tab)}
-                        style={[
-                            styles.tab,
-                            selectedTab === tab && { borderBottomColor: colors.primary }
-                        ]}
+                        style={[styles.tab, selectedTab === tab && { borderBottomColor: colors.primary }]}
                     >
-                        <Text style={[
-                            styles.tabText,
-                            { color: selectedTab === tab ? colors.primary : colors.textSecondary }
-                        ]}>
+                        <Text style={[styles.tabText, { color: selectedTab === tab ? colors.primary : colors.textSecondary }]}>
                             {tab.charAt(0).toUpperCase() + tab.slice(1)}
                         </Text>
                     </TouchableOpacity>
                 ))}
             </View>
 
-            <FlatList
-                data={filteredRequests}
-                renderItem={renderItem}
-                keyExtractor={item => item.id}
-                contentContainerStyle={styles.list}
-                showsVerticalScrollIndicator={false}
-                ListHeaderComponent={<SectionHeader title="Staff Requests" />}
-                ListEmptyComponent={
-                    <View style={styles.empty}>
-                        <Ionicons name="file-tray-outline" size={64} color={colors.textMuted} />
-                        <Text style={{ color: colors.textSecondary, marginTop: DesignTokens.spacing.md, ...DesignTokens.typography.body }}>No requests in this category</Text>
+            {loading ? (
+                <ListSkeleton count={4} />
+            ) : (
+                <FlatList
+                    data={filteredRequests}
+                    renderItem={renderItem}
+                    keyExtractor={item => item.id.toString()}
+                    contentContainerStyle={styles.list}
+                    showsVerticalScrollIndicator={false}
+                    ListHeaderComponent={<SectionHeader title="Staff Requests" actionLabel="Refresh" onAction={load} />}
+                    ListEmptyComponent={
+                        <View style={styles.empty}>
+                            <Ionicons name="calendar-outline" size={64} color={colors.textMuted} />
+                            <Text style={{ color: colors.textSecondary, marginTop: DesignTokens.spacing.md, ...DesignTokens.typography.body }}>
+                                No leave requests here
+                            </Text>
+                        </View>
+                    }
+                />
+            )}
+
+            {/* Review Modal */}
+            <Modal visible={!!reviewing} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setReviewing(null)}>
+                <SafeAreaView style={[styles.modal, { backgroundColor: colors.background }]}>
+                    <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>Review Request</Text>
+                        <TouchableOpacity onPress={() => setReviewing(null)}>
+                            <Ionicons name="close" size={24} color={colors.text} />
+                        </TouchableOpacity>
                     </View>
-                }
-            />
+                    <ScrollView contentContainerStyle={styles.modalBody}>
+                        {reviewing && (
+                            <View style={[styles.details, { backgroundColor: colors.surfaceSecondary, marginBottom: 16 }]}>
+                                <Text style={{ ...DesignTokens.typography.bodyBold, color: colors.text }}>{reviewing.requester_name}</Text>
+                                <Text style={{ ...DesignTokens.typography.caption, color: colors.textSecondary, marginTop: 4 }}>Date: {reviewing.start_date} to {reviewing.end_date}</Text>
+                                <Text style={{ ...DesignTokens.typography.caption, color: colors.textSecondary, marginTop: 8 }}>Reason: {reviewing.reason || 'No reason provided'}</Text>
+                            </View>
+                        )}
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>Admin Comment (Optional)</Text>
+                        <View style={[styles.inputWrap, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                            <TextInput
+                                style={[styles.textArea, { color: colors.text }]}
+                                placeholder="Add a note for the employee..."
+                                placeholderTextColor={colors.textMuted}
+                                value={adminComment}
+                                onChangeText={setAdminComment}
+                                multiline
+                                numberOfLines={4}
+                                textAlignVertical="top"
+                            />
+                        </View>
+                        <View style={styles.modalActions}>
+                            <Button
+                                title="Reject"
+                                onPress={() => handleProcessRequest('rejected')}
+                                icon="close-circle-outline"
+                                style={[styles.actionBtn, { borderColor: colors.danger, backgroundColor: 'transparent' }]}
+                                textStyle={{ color: colors.danger }}
+                                disabled={isSaving}
+                            />
+                            <Button
+                                title="Approve"
+                                onPress={() => handleProcessRequest('approved')}
+                                icon="checkmark-circle-outline"
+                                style={styles.actionBtn}
+                                disabled={isSaving}
+                            />
+                        </View>
+                    </ScrollView>
+                </SafeAreaView>
+            </Modal>
 
             <BottomNav items={ADMIN_NAV_ITEMS} activeRoute="/admin/leave" />
         </SafeAreaView>
@@ -201,111 +215,36 @@ export default function LeavePage() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    tabBar: {
-        flexDirection: 'row',
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0,0,0,0.05)',
-    },
-    tab: {
-        flex: 1,
-        paddingVertical: 14,
-        alignItems: 'center',
-        borderBottomWidth: 2,
-        borderBottomColor: 'transparent',
-    },
-    tabText: {
-        ...DesignTokens.typography.caption,
-        fontWeight: 'bold',
-    },
-    list: {
-        padding: DesignTokens.spacing.lg,
-        paddingBottom: 100,
-        gap: DesignTokens.spacing.md,
-    },
-    card: {
-        padding: DesignTokens.spacing.md,
-        gap: DesignTokens.spacing.md,
-        marginBottom: DesignTokens.spacing.md,
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    avatar: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    avatarText: {
-        ...DesignTokens.typography.h3,
-        lineHeight: 24,
-    },
-    headerText: {
-        flex: 1,
-        marginLeft: DesignTokens.spacing.md,
-    },
-    name: {
-        ...DesignTokens.typography.bodyBold,
-    },
-    role: {
-        ...DesignTokens.typography.tiny,
-    },
-    details: {
-        padding: DesignTokens.spacing.md,
-        borderRadius: 14,
-        gap: 8,
-    },
-    detailRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: DesignTokens.spacing.sm,
-    },
-    typeText: {
-        ...DesignTokens.typography.caption,
-        fontWeight: 'bold',
-    },
-    dateText: {
-        ...DesignTokens.typography.tiny,
-    },
-    reason: {
-        ...DesignTokens.typography.caption,
-        lineHeight: 18,
-    },
-    actions: {
-        flexDirection: 'row',
-        gap: DesignTokens.spacing.md,
-        marginTop: DesignTokens.spacing.sm,
-    },
-    actionBtn: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
-        borderRadius: 12,
-        gap: DesignTokens.spacing.sm,
-    },
-    rejectBtn: {
-        borderWidth: 1.5,
-    },
-    rejectText: {
-        ...DesignTokens.typography.caption,
-        fontWeight: 'bold',
-    },
-    approveBtn: {},
-    approveText: { 
-        ...DesignTokens.typography.caption,
-        fontWeight: 'bold',
-    },
-    empty: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 100,
-    },
+    container: { flex: 1 },
+    tabBar: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' },
+    tab: { flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
+    tabText: { ...DesignTokens.typography.caption, fontWeight: 'bold' },
+    list: { padding: DesignTokens.spacing.lg, paddingBottom: 100, gap: DesignTokens.spacing.md },
+    card: { padding: DesignTokens.spacing.md, gap: DesignTokens.spacing.md, marginBottom: DesignTokens.spacing.md },
+    cardHeader: { flexDirection: 'row', alignItems: 'center' },
+    avatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+    avatarText: { ...DesignTokens.typography.h3, lineHeight: 24 },
+    headerText: { flex: 1, marginLeft: DesignTokens.spacing.md },
+    name: { ...DesignTokens.typography.bodyBold },
+    role: { ...DesignTokens.typography.tiny },
+    details: { padding: DesignTokens.spacing.md, borderRadius: 14, gap: 8 },
+    detailRow: { flexDirection: 'row', alignItems: 'center', gap: DesignTokens.spacing.sm },
+    typeText: { ...DesignTokens.typography.caption, fontWeight: 'bold' },
+    dateText: { ...DesignTokens.typography.tiny },
+    reason: { ...DesignTokens.typography.caption, lineHeight: 18 },
+    actions: { flexDirection: 'row', gap: DesignTokens.spacing.md, marginTop: DesignTokens.spacing.sm },
+    responseBox: { flexDirection: 'row', gap: 6, padding: 10, borderRadius: 10, borderWidth: 1, alignItems: 'center', marginTop: 4 },
+    responseText: { ...DesignTokens.typography.caption, flex: 1 },
+    empty: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 100 },
+
+    // Modal
+    modal: { flex: 1 },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1 },
+    modalTitle: { ...DesignTokens.typography.h2 },
+    modalBody: { padding: DesignTokens.spacing.lg, gap: DesignTokens.spacing.md },
+    label: { ...DesignTokens.typography.caption, fontWeight: '600' },
+    inputWrap: { borderRadius: 12, borderWidth: 1, padding: 12 },
+    textArea: { fontSize: 14, minHeight: 100 },
+    modalActions: { flexDirection: 'row', gap: 12, marginTop: 16 },
+    actionBtn: { flex: 1, borderWidth: 1, borderColor: 'transparent' },
 });

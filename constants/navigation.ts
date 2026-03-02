@@ -12,8 +12,8 @@ export const MERCHANDISER_NAV_ITEMS: NavItemType[] = [
 export const SUPERVISOR_NAV_ITEMS: NavItemType[] = [
     { icon: 'grid', label: 'Overview', route: '/supervisor/dashboard' },
     { icon: 'people', label: 'Team', route: '/supervisor/team' },
-    { icon: 'calendar', label: 'Planning', route: '/supervisor/planning' },
     { icon: 'storefront', label: 'GMS', route: '/supervisor/gms' },
+    { icon: 'calendar', label: 'Planning', route: '/supervisor/planning' },
     { icon: 'person', label: 'Profile', route: '/supervisor/profile' },
 ];
 

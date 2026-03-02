@@ -41,7 +41,6 @@ const INITIAL_REGION = {
 };
 
 export default function GSMPage() {
-    const router = useRouter();
     const { theme } = useTheme();
     const colors = getColors(theme);
     const isDark = theme === 'dark';

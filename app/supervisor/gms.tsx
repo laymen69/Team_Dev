@@ -11,9 +11,11 @@ import { Header } from '../../components/ui/Header';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { SUPERVISOR_NAV_ITEMS } from '../../constants/navigation';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Fonts } from '../../hooks/useFonts';
 import { GMS, GMSService } from '../../services/gms.service';
+import { NotificationService } from '../../services/notification.service';
 
 const INITIAL_REGION = {
     latitude: 36.575,
@@ -25,6 +27,7 @@ const INITIAL_REGION = {
 export default function GMSPage() {
     const router = useRouter();
     const { theme } = useTheme();
+    const { user } = useAuth();
     const colors = getColors(theme);
     const [gmsLocations, setGmsLocations] = useState<GMS[]>([]);
     const [loading, setLoading] = useState(true);
@@ -66,20 +69,32 @@ export default function GMSPage() {
         loadStores();
     };
 
-    const handleAddRequest = () => {
+    const handleAddRequest = async () => {
         if (!newGms.name || !newGms.address) {
             Alert.alert('Required', 'Please fill in name and address');
             return;
         }
 
-        // Include picked coordinates in the request (hidden from UI)
-        const finalData = { ...newGms, ...tempLocation };
+        // Include picked coordinates and requester ID in the request
+        const finalData = { ...newGms, ...tempLocation, requester_id: user?.id };
         console.log('[Supervisor] Sending GMS Request:', finalData);
 
-        Alert.alert('Success', 'Request sent to administrator for approval');
-        setShowAddModal(false);
-        setNewGms({ name: '', address: '', type: 'Supermarket', city: 'Tunisia' });
-        setIsPickingLocation(false);
+        const success = await NotificationService.notifyAdmins({
+            title: 'New GMS Approval Request',
+            message: `Supervisor requested to add ${newGms.name} in ${newGms.city}.`,
+            type: 'new_gms' as any, // Using 'new_gms' type for the filter
+            icon: 'storefront',
+            action_link: JSON.stringify(finalData)
+        });
+
+        if (success) {
+            Alert.alert('Success', 'Request sent to administrator for approval');
+            setShowAddModal(false);
+            setNewGms({ name: '', address: '', type: 'Supermarket', city: 'Tunisia' });
+            setIsPickingLocation(false);
+        } else {
+            Alert.alert('Error', 'Failed to send request to admin');
+        }
     };
 
     const filteredLocations = gmsLocations.filter(loc =>

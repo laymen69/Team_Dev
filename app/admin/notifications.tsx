@@ -1,23 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
-    ActivityIndicator,
     RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Card } from '../../components/ui/Card';
 import { Header } from '../../components/ui/Header';
+import { ListSkeleton } from '../../components/ui/LoadingSkeleton';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { ADMIN_NAV_ITEMS } from '../../constants/navigation';
+import { useNotifications } from '../../context/NotificationContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Notification, NotificationService } from '../../services/notification.service';
 
@@ -43,9 +44,11 @@ export default function NotificationsPage() {
         }
     };
 
-    useEffect(() => {
-        loadNotifications();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            loadNotifications();
+        }, [])
+    );
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
@@ -53,26 +56,52 @@ export default function NotificationsPage() {
     }, []);
 
     const getTypeConfig = (type: string) => {
-        switch (type) {
+        const t = type.toLowerCase().trim();
+        switch (t) {
             case 'alert': return { icon: 'warning', color: colors.warning };
             case 'success': return { icon: 'checkmark-circle', color: colors.success };
             case 'warning': return { icon: 'alert-circle', color: colors.warning };
+            case 'new_gms': return { icon: 'hourglass', color: colors.secondary };
+            case 'report': return { icon: 'document-text', color: colors.warning };
             default: return { icon: 'information-circle', color: colors.primary };
         }
     };
 
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+
+    // --- filter helpers ---
+    const filterNotifs = (id: string) =>
+        notifications.filter(n => {
+            const type = n.type.toLowerCase().trim();
+            if (id === 'all') return true;
+            if (id === 'unread') return !n.is_read;
+            if (id === 'report') return type === 'report' || type === 'alert';
+            if (id === 'new_gms') return type === 'new_gms';
+            return type === id;
+        });
+
     const filters = [
-        { id: 'all', label: 'All' },
-        { id: 'unread', label: 'Unread' },
-        { id: 'alert', label: 'Alerts' },
-        { id: 'success', label: 'Success' },
+        { id: 'all', label: 'All', count: notifications.length },
+        { id: 'unread', label: 'Unread', count: filterNotifs('unread').length },
+        { id: 'report', label: 'Reports', count: filterNotifs('report').length },
+        { id: 'new_gms', label: 'New GMS', count: filterNotifs('new_gms').length },
     ];
 
-    const filteredNotifications = notifications.filter(notif => {
-        if (selectedFilter === 'all') return true;
-        if (selectedFilter === 'unread') return !notif.is_read;
-        return notif.type === selectedFilter;
-    });
+    const sectionTitles: Record<string, string> = {
+        all: 'All Notifications',
+        unread: 'Unread',
+        report: 'Reports & Alerts',
+        new_gms: 'New GMS Requests',
+    };
+
+    const filteredNotifications = filterNotifs(selectedFilter)
+        .sort((a, b) => {
+            const dateA = new Date(a.created_at).getTime();
+            const dateB = new Date(b.created_at).getTime();
+            return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+        });
+
+    const { decrementUnread, resetUnread } = useNotifications();
 
     const handleMarkAsRead = async (id: number) => {
         const updated = await NotificationService.markAsRead(id);
@@ -80,6 +109,7 @@ export default function NotificationsPage() {
             setNotifications(prev => prev.map(n =>
                 n.id === id ? { ...n, is_read: true } : n
             ));
+            decrementUnread(1);
         }
     };
 
@@ -87,35 +117,16 @@ export default function NotificationsPage() {
         const success = await NotificationService.markAllAsRead();
         if (success) {
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            resetUnread();
         }
     };
 
-    const handleNotificationPress = async (item: Notification) => {
+    const handleNotificationPress = (item: Notification) => {
         if (!item.is_read) {
             handleMarkAsRead(item.id);
         }
-
-        if (item.action_link) {
-            router.push(item.action_link as any);
-            return;
-        }
-
-        // Default navigation based on type
-        switch (item.type) {
-            case 'alert':
-                router.push('/admin/before-after');
-                break;
-            case 'success':
-                router.push('/admin/users');
-                break;
-            case 'warning':
-                router.push('/admin/leave');
-                break;
-            case 'info':
-            default:
-                router.push('/admin/dashboard');
-                break;
-        }
+        // Navigate to details page as requested
+        router.push(`/admin/notification/${item.id}`);
     };
 
     const formatTime = (dateStr: string) => {
@@ -140,30 +151,54 @@ export default function NotificationsPage() {
                 showsVerticalScrollIndicator={false}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
             >
-                <View style={styles.filterBar}>
-                    {filters.map(filter => (
-                        <TouchableOpacity
-                            key={filter.id}
-                            style={[
-                                styles.filterBtn,
-                                { backgroundColor: selectedFilter === filter.id ? colors.primary : colors.surfaceSecondary }
-                            ]}
-                            onPress={() => setSelectedFilter(filter.id)}
-                        >
-                            <Text style={[
-                                styles.filterText,
-                                { color: selectedFilter === filter.id ? '#fff' : colors.textSecondary }
-                            ]}>
-                                {filter.label}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.filterBar}
+                >
+                    {filters.map(filter => {
+                        const active = selectedFilter === filter.id;
+                        return (
+                            <TouchableOpacity
+                                key={filter.id}
+                                style={[
+                                    styles.filterBtn,
+                                    { backgroundColor: active ? colors.primary : colors.surfaceSecondary }
+                                ]}
+                                onPress={() => setSelectedFilter(filter.id)}
+                            >
+                                <Text style={[
+                                    styles.filterText,
+                                    { color: active ? '#fff' : colors.textSecondary }
+                                ]}>
+                                    {filter.label}
+                                </Text>
+                                {filter.count > 0 && (
+                                    <View style={[
+                                        styles.badge,
+                                        { backgroundColor: active ? 'rgba(255,255,255,0.3)' : colors.primary + '22' }
+                                    ]}>
+                                        <Text style={[
+                                            styles.badgeText,
+                                            { color: active ? '#fff' : colors.primary }
+                                        ]}>
+                                            {filter.count}
+                                        </Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                        );
+                    })}
+                </ScrollView>
 
-                <SectionHeader title="Staff Alerts" />
+                <SectionHeader
+                    title={sectionTitles[selectedFilter] ?? 'Notifications'}
+                    actionLabel={sortOrder === 'newest' ? "Newest First" : "Oldest First"}
+                    onAction={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}
+                />
 
                 {loading ? (
-                    <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+                    <ListSkeleton count={6} />
                 ) : filteredNotifications.length === 0 ? (
                     <View style={styles.empty}>
                         <Ionicons name="notifications-off-outline" size={64} color={colors.textMuted} />
@@ -209,13 +244,29 @@ const styles = StyleSheet.create({
     },
     filterBar: {
         flexDirection: 'row',
-        padding: DesignTokens.spacing.lg,
+        paddingHorizontal: DesignTokens.spacing.lg,
+        paddingVertical: DesignTokens.spacing.md,
         gap: DesignTokens.spacing.sm,
     },
     filterBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 20,
+        gap: 6,
+    },
+    badge: {
+        minWidth: 20,
+        height: 20,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 5,
+    },
+    badgeText: {
+        fontSize: 11,
+        fontWeight: '700',
     },
     filterText: {
         ...DesignTokens.typography.caption,
@@ -243,10 +294,11 @@ const styles = StyleSheet.create({
         gap: 2,
     },
     notifTitle: {
-        ...DesignTokens.typography.body,
+        ...DesignTokens.typography.bodyBold,
     },
     notifBody: {
         ...DesignTokens.typography.caption,
+        lineHeight: 18,
     },
     notifTime: {
         ...DesignTokens.typography.tiny,

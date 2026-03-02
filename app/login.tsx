@@ -24,6 +24,7 @@ import { APP_COLORS } from '../constants/appColors';
 import { Colors } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { Fonts } from '../hooks/useFonts';
+import { GoogleAuthService } from '../services/google.service';
 import AnimatedBackground from './components/AnimatedBackground';
 import AuthUserTypeCard from './components/AuthUserTypeCard';
 import FloatingLabelInput from './components/FloatingLabelInput';
@@ -85,8 +86,33 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogleSignIn = () => {
-    Alert.alert('Google Sign-in', 'This feature is currently under development.');
+  const handleGoogleSignIn = async () => {
+    if (!selectedType) {
+      Alert.alert('Selection Required', 'Please choose your role to continue before signing in with Google');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result: any = await GoogleAuthService.signIn();
+      if (result.type === 'success') {
+        // Here you would normally send the ID token or access token 
+        // to your backend to get an app JWT:
+        // const appToken = await AuthService.loginWithGoogle(result.user.email);
+
+        // For now, let's use a demo account for the selected role
+        let demoEmail = 'admin@admin.com';
+        if (selectedType === 'supervisor') demoEmail = 'supervisor@sup.com';
+        if (selectedType === 'merchandiser') demoEmail = 'merch@merch.com';
+
+        await signIn(demoEmail, 'password123', selectedType, true);
+        Alert.alert('Google Sync Success', `Connected as ${result.user.name}`);
+      }
+    } catch (error: any) {
+      Alert.alert('Google Sign-in failed', error.message || 'An error occurred during authentication');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -108,7 +134,7 @@ export default function LoginScreen() {
               >
                 <Ionicons name="arrow-back" size={24} color={APP_COLORS.textPrimary} />
               </TouchableOpacity>
-
+ 
               <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
                 <View style={styles.logoBadge}>
                   <Image
@@ -190,12 +216,12 @@ export default function LoginScreen() {
                   <Text style={styles.buttonText}>
                     {isLoading ? "Signing In..." : "Sign In"}
                   </Text>
-                  {!isLoading && <Ionicons name="log-in-outline" size={20} color="#fff" />}
+                  {!isLoading && <Ionicons name="log-in-outline" size={20} color="#e8e8e890" />}
                 </TouchableOpacity>
 
                 <View style={styles.signUpLink} >
                   <Text style={[styles.signUpText, { color: APP_COLORS.textSecondary }]}>
-                    Don't have an account? <Text style={[styles.signUpTextAccent, { color: APP_COLORS.accent }]} onPress={() => router.push('/signup' as any)}>Join Now</Text>
+                    No account ? No Problem  <Text style={[styles.signUpTextAccent, { color: APP_COLORS.accent }]} onPress={() => router.push('/signup' as any)}>SignUp Now</Text>
                   </Text>
                 </View>
 
@@ -222,9 +248,10 @@ export default function LoginScreen() {
                 <Text style={[styles.demoTitle, { color: APP_COLORS.accent }]}>Demo Accounts</Text>
                 <Text style={[styles.demoText, { color: APP_COLORS.textSecondary }]}>Password: <Text style={{ color: APP_COLORS.textPrimary, fontWeight: 'bold' }}>   password123</Text></Text>
                 <View style={styles.demoGrid}>
-                  <Text style={[styles.demoItem, { color: APP_COLORS.textSecondary }]}>admin@test.com</Text>
-                  <Text style={[styles.demoItem, { color: APP_COLORS.textSecondary }]}>supervisor@test.com</Text>
-                  <Text style={[styles.demoItem, { color: APP_COLORS.textSecondary }]}>merch@test.com</Text>
+                  <Text style={[styles.demoItem, { color: APP_COLORS.textSecondary }]}>admin@admin.com</Text>
+                  <Text style={[styles.demoItem, { color: APP_COLORS.textSecondary }]}>supervisor@sup.com</Text>
+                  <Text style={[styles.demoItem, { color: APP_COLORS.textSecondary }]}>merch@merch.com</Text>
+                  <Text style={[styles.demoItem, { color: APP_COLORS.textSecondary }]}>adel@merch.com</Text>
                 </View>
               </View>
 
@@ -272,7 +299,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: Fonts.body,
+    fontFamily: Fonts.subheading,
     textAlign: 'center',
     paddingHorizontal: 20,
   },
@@ -319,7 +346,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.headingSemiBold,
     marginBottom: 12,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 2,
   },
   typeRow: {
     flexDirection: 'row',
@@ -361,10 +388,11 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buttonText: {
-    fontSize: 18,
-    fontFamily: Fonts.heading,
+    fontSize: 22,
+    fontFamily: Fonts.cta,
     marginRight: 8,
     color: '#fff',
+    letterSpacing: 1,
   },
   signUpLink: {
     alignItems: 'center',

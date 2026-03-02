@@ -3,7 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
 import {
     Animated,
+    Dimensions,
     Modal,
+    Platform,
     StyleSheet,
     Text,
     TouchableWithoutFeedback,
@@ -12,6 +14,9 @@ import {
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { useTheme } from '../../context/ThemeContext';
 import { PremiumPressable } from './PremiumPressable';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BUBBLE_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 300);
 
 export interface SettingsItemType {
     icon?: keyof typeof Ionicons.glyphMap;
@@ -84,7 +89,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <TouchableWithoutFeedback>
                         <Animated.View
                             style={[
-                                styles.card,
+                                styles.bubble,
                                 {
                                     backgroundColor: colors.surface,
                                     opacity: opacityAnim,
@@ -94,8 +99,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         >
                             <View style={[styles.header, { borderBottomColor: colors.border }]}>
                                 <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-                                <PremiumPressable onPress={onClose} enableScale>
-                                    <Ionicons name="close" size={20} color={colors.textMuted} />
+                                <PremiumPressable onPress={onClose} enableScale style={styles.closeBtn}>
+                                    <Ionicons name="close" size={20} color={colors.textSecondary} />
                                 </PremiumPressable>
                             </View>
 
@@ -103,21 +108,36 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 {items.map((item, index) => (
                                     <PremiumPressable
                                         key={index}
-                                        style={styles.item}
+                                        style={[
+                                            styles.item,
+                                            { backgroundColor: colors.surfaceSecondary },
+                                        ]}
                                         onPress={item.onPress}
                                         enableScale
                                     >
+                                        {item.icon && (
+                                            <View
+                                                style={[
+                                                    styles.iconBox,
+                                                    { backgroundColor: `${item.color || colors.primary}20` },
+                                                ]}
+                                            >
+                                                <Ionicons
+                                                    name={item.icon}
+                                                    size={20}
+                                                    color={item.isDestructive ? colors.danger : item.color || colors.primary}
+                                                />
+                                            </View>
+                                        )}
                                         <Text
                                             style={[
                                                 styles.label,
-                                                {
-                                                    color: item.isDestructive ? colors.danger : colors.text,
-                                                    textAlign: 'center'
-                                                },
+                                                { color: item.isDestructive ? colors.danger : colors.text },
                                             ]}
                                         >
                                             {item.label}
                                         </Text>
+                                        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
                                     </PremiumPressable>
                                 ))}
                             </View>
@@ -132,45 +152,59 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 40,
+        backgroundColor: 'rgba(0,0,0,0.2)',
     },
-    card: {
-        width: '80%',
-        maxWidth: 300,
+    bubble: {
+        position: 'absolute',
+        top: Platform.OS === 'web' ? 80 : 100,
+        right: 16,
+        width: BUBBLE_WIDTH,
         borderRadius: 24,
-        overflow: 'hidden',
+        paddingTop: 8,
+        paddingBottom: 8,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 15,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+        elevation: 8,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingHorizontal: DesignTokens.spacing.lg,
+        paddingBottom: DesignTokens.spacing.md,
         borderBottomWidth: 1,
     },
     title: {
-        ...DesignTokens.typography.bodyBold,
-        fontSize: 16,
+        ...DesignTokens.typography.h3,
+    },
+    closeBtn: {
+        padding: 4,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        borderRadius: 12,
     },
     content: {
-        padding: 12,
+        padding: DesignTokens.spacing.md,
+        gap: DesignTokens.spacing.sm,
     },
     item: {
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        borderRadius: 12,
-        marginVertical: 2,
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: DesignTokens.spacing.sm,
+        borderRadius: 16,
+        gap: DesignTokens.spacing.md,
     },
     label: {
-        ...DesignTokens.typography.body,
+        flex: 1,
         fontSize: 15,
+        fontFamily: 'Inter-SemiBold',
+    },
+    iconBox: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });

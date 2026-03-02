@@ -1,6 +1,6 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     Alert,
     ScrollView,
@@ -19,6 +19,7 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { SUPERVISOR_NAV_ITEMS } from '../../constants/navigation';
 import { useTheme } from '../../context/ThemeContext';
+import { LeaveService } from '../../services/leave.service';
 
 const leaveTypes = [
     { id: 'annual', label: 'Annual Leave', icon: 'sunny' },
@@ -35,6 +36,7 @@ export default function LeavePage() {
     const [startDate, setStartDate] = useState<string | null>(null);
     const [endDate, setEndDate] = useState<string | null>(null);
     const [reason, setReason] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const onDayPress = (day: any) => {
         if (!startDate || (startDate && endDate)) {
@@ -84,16 +86,29 @@ export default function LeavePage() {
         return marked;
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!startDate || !endDate || !reason) {
             Alert.alert('Error', 'Please select a date range and provide a reason');
             return;
         }
-        Alert.alert(
-            'Request Submitted',
-            `Your leave request from ${startDate} to ${endDate} has been sent for approval.`,
-            [{ text: 'OK', onPress: () => router.back() }]
-        );
+        setIsSubmitting(true);
+        const res = await LeaveService.create({
+            leave_type: selectedType,
+            start_date: startDate,
+            end_date: endDate,
+            reason: reason,
+        });
+        setIsSubmitting(false);
+
+        if (res) {
+            Alert.alert(
+                'Request Submitted',
+                `Your leave request from ${startDate} to ${endDate} has been sent for approval.`,
+                [{ text: 'OK', onPress: () => router.back() }]
+            );
+        } else {
+            Alert.alert('Error', 'Failed to submit leave request. Please try again.');
+        }
     };
 
     const handleCancel = () => {
@@ -214,12 +229,14 @@ export default function LeavePage() {
                         onPress={handleCancel}
                         style={{ flex: 1 }}
                         icon="close-outline"
+                        disabled={isSubmitting}
                     />
                     <Button
-                        title="Submit"
+                        title={isSubmitting ? "Submitting..." : "Submit"}
                         onPress={handleSubmit}
                         style={{ flex: 1.5 }}
                         icon="send-outline"
+                        disabled={isSubmitting}
                     />
                 </View>
 

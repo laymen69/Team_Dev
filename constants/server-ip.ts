@@ -1,1 +1,1 @@
-export const SERVER_IP: string = '10.171.1.172';
+export const SERVER_IP: string = '127.0.0.1';

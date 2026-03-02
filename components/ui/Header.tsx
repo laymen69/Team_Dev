@@ -17,7 +17,10 @@ interface HeaderProps {
     secondRightIcon?: keyof typeof Ionicons.glyphMap;
     onSecondRightIconPress?: () => void;
     showBack?: boolean;
+    onBack?: () => void;
 }
+
+import { useNotifications } from '../../context/NotificationContext';
 
 export const Header: React.FC<HeaderProps> = ({
     title,
@@ -29,10 +32,32 @@ export const Header: React.FC<HeaderProps> = ({
     secondRightIcon,
     onSecondRightIconPress,
     showBack = false,
+    onBack,
 }) => {
     const { theme } = useTheme();
     const colors = getColors(theme);
     const router = useRouter();
+    const { unreadCount } = useNotifications();
+
+    const renderIconWithBadge = (iconName: keyof typeof Ionicons.glyphMap, onPress?: () => void) => {
+        const isNotification = iconName === 'notifications-outline' || iconName === 'notifications';
+
+        // Use solid bell icon when there are unread notifications
+        const currentIcon = (isNotification && unreadCount > 0) ? 'notifications' : iconName;
+
+        return (
+            <PremiumPressable onPress={onPress} style={styles.rightBtn} enableScale>
+                <Ionicons name={currentIcon as any} size={24} color={colors.text} />
+                {isNotification && unreadCount > 0 && (
+                    <View style={[styles.badgeContainer, { backgroundColor: colors.danger }]}>
+                        <Text style={styles.badgeText}>
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                        </Text>
+                    </View>
+                )}
+            </PremiumPressable>
+        );
+    };
 
     return (
         <View style={styles.outerContainer}>
@@ -45,17 +70,25 @@ export const Header: React.FC<HeaderProps> = ({
                 <View style={styles.left}>
                     {showBack ? (
                         <PremiumPressable
-                            onPress={() => router.back()}
+                            onPress={() => onBack ? onBack() : router.back()}
                             style={styles.backBtn}
                             enableScale
                         >
                             <Ionicons name="arrow-back" size={24} color={colors.text} />
                         </PremiumPressable>
-                    ) : avatar ? (
-                        <PremiumPressable onPress={onAvatarPress} style={styles.avatarContainer} enableScale>
-                            <Image source={avatar} style={styles.avatar} />
+                    ) : (
+                        <PremiumPressable onPress={onAvatarPress} style={styles.avatarContainer} enableScale disabled={!onAvatarPress}>
+                            {avatar ? (
+                                <Image source={avatar} style={styles.avatar} />
+                            ) : (
+                                <View style={[styles.avatar, styles.avatarInitials, { backgroundColor: colors.primary }]}>
+                                    <Text style={styles.initialsText}>
+                                        {title ? title.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '??'}
+                                    </Text>
+                                </View>
+                            )}
                         </PremiumPressable>
-                    ) : null}
+                    )}
 
                     <View style={styles.titleContainer}>
                         <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
@@ -68,16 +101,8 @@ export const Header: React.FC<HeaderProps> = ({
                 </View>
 
                 <View style={styles.rightActions}>
-                    {secondRightIcon && (
-                        <PremiumPressable onPress={onSecondRightIconPress} style={styles.rightBtn} enableScale>
-                            <Ionicons name={secondRightIcon} size={24} color={colors.text} />
-                        </PremiumPressable>
-                    )}
-                    {rightIcon && (
-                        <PremiumPressable onPress={onRightIconPress} style={styles.rightBtn} enableScale>
-                            <Ionicons name={rightIcon} size={24} color={colors.text} />
-                        </PremiumPressable>
-                    )}
+                    {secondRightIcon && renderIconWithBadge(secondRightIcon, onSecondRightIconPress)}
+                    {rightIcon && renderIconWithBadge(rightIcon, onRightIconPress)}
                 </View>
             </GlassView>
         </View>
@@ -116,8 +141,24 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: 'rgba(255,255,255,0.2)',
     },
+    avatarInitials: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    initialsText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+    },
     backBtn: {
-        padding: 4,
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     titleContainer: {
         justifyContent: 'center',
@@ -132,9 +173,29 @@ const styles = StyleSheet.create({
         padding: 8,
         backgroundColor: 'rgba(255,255,255,0.05)',
         borderRadius: 12,
+        position: 'relative',
     },
     rightActions: {
         flexDirection: 'row',
         gap: DesignTokens.spacing.sm,
+    },
+    badgeContainer: {
+        position: 'absolute',
+        top: -5,
+        right: -5,
+        minWidth: 18,
+        height: 18,
+        borderRadius: 9,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+        borderWidth: 2,
+        borderColor: '#fff',
+    },
+    badgeText: {
+        color: '#fff',
+        fontSize: 9,
+        fontWeight: 'bold',
+        textAlign: 'center',
     },
 });

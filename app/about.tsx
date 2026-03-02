@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     },
     cardBody: {
         fontSize: 15,
-        fontFamily: Fonts.body,
+        fontFamily: Fonts.secondary,
         color: APP_COLORS.textSecondary,
         lineHeight: 24,
     },
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     },
     featureDesc: {
         fontSize: 12,
-        fontFamily: Fonts.body,
+        fontFamily: Fonts.secondary,
         color: APP_COLORS.textSecondary,
         lineHeight: 18,
     },
@@ -287,7 +287,8 @@ const styles = StyleSheet.create({
     },
     ctaBtnText: {
         color: '#fff',
-        fontSize: 16,
-        fontFamily: Fonts.headingSemiBold,
+        fontSize: 20,
+        fontFamily: Fonts.cta,
+        letterSpacing: 1,
     },
 });

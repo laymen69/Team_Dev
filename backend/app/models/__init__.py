@@ -9,6 +9,9 @@ from app.models.objective import Objective
 from app.models.workday import Workday
 from app.models.visit import Visit
 from app.models.location_log import LocationLog
+from app.models.article import Article
+from app.models.complaint import Complaint
+from app.models.leave_request import LeaveRequest
 
 __all__ = [
     "Base",
@@ -21,4 +24,7 @@ __all__ = [
     "Workday",
     "Visit",
     "LocationLog",
+    "Article",
+    "Complaint",
+    "LeaveRequest",
 ]

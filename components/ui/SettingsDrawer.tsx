@@ -5,6 +5,7 @@ import {
     Animated,
     Dimensions,
     Modal,
+    Platform,
     StyleSheet,
     Text,
     TouchableWithoutFeedback,
@@ -15,7 +16,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { PremiumPressable } from './PremiumPressable';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const DRAWER_WIDTH = SCREEN_WIDTH * 0.75;
+const BUBBLE_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 300);
 
 export interface SettingsItemType {
     icon: keyof typeof Ionicons.glyphMap;
@@ -41,24 +42,41 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
 }) => {
     const { theme } = useTheme();
     const colors = getColors(theme);
-    const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
     useEffect(() => {
         if (visible) {
-            Animated.spring(slideAnim, {
-                toValue: SCREEN_WIDTH - DRAWER_WIDTH,
-                useNativeDriver: true,
-                tension: 50,
-                friction: 10,
-            }).start();
+            Animated.parallel([
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 200,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(scaleAnim, {
+                    toValue: 1,
+                    friction: 8,
+                    tension: 50,
+                    useNativeDriver: true,
+                })
+            ]).start();
         } else {
-            Animated.timing(slideAnim, {
-                toValue: SCREEN_WIDTH,
-                duration: 250,
-                useNativeDriver: true,
-            }).start();
+            Animated.parallel([
+                Animated.timing(fadeAnim, {
+                    toValue: 0,
+                    duration: 150,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(scaleAnim, {
+                    toValue: 0.9,
+                    duration: 150,
+                    useNativeDriver: true,
+                })
+            ]).start();
         }
     }, [visible]);
+
+    if (!visible) return null;
 
     return (
         <Modal
@@ -72,18 +90,18 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                     <TouchableWithoutFeedback>
                         <Animated.View
                             style={[
-                                styles.drawer,
+                                styles.bubble,
                                 {
                                     backgroundColor: colors.surface,
-                                    transform: [{ translateX: slideAnim }],
-                                    width: DRAWER_WIDTH,
+                                    opacity: fadeAnim,
+                                    transform: [{ scale: scaleAnim }],
                                 },
                             ]}
                         >
                             <View style={[styles.header, { borderBottomColor: colors.border }]}>
                                 <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-                                <PremiumPressable onPress={onClose} enableScale>
-                                    <Ionicons name="close" size={24} color={colors.textSecondary} />
+                                <PremiumPressable onPress={onClose} enableScale style={styles.closeBtn}>
+                                    <Ionicons name="close" size={20} color={colors.textSecondary} />
                                 </PremiumPressable>
                             </View>
 
@@ -139,48 +157,59 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.2)',
     },
-    drawer: {
-        height: '100%',
-        paddingTop: 60,
+    bubble: {
+        position: 'absolute',
+        top: Platform.OS === 'web' ? 80 : 100,
+        right: 16,
+        width: BUBBLE_WIDTH,
+        borderRadius: 24,
+        paddingTop: 8,
+        paddingBottom: 8,
         shadowColor: '#000',
-        shadowOffset: { width: -2, height: 0 },
-        shadowOpacity: 0.2,
-        shadowRadius: 10,
-        elevation: 10,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+        elevation: 8,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: DesignTokens.spacing.xl,
-        paddingBottom: DesignTokens.spacing.lg,
+        paddingHorizontal: DesignTokens.spacing.lg,
+        paddingBottom: DesignTokens.spacing.md,
         borderBottomWidth: 1,
     },
     title: {
-        ...DesignTokens.typography.h2,
+        ...DesignTokens.typography.h3,
+    },
+    closeBtn: {
+        padding: 4,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        borderRadius: 12,
     },
     content: {
-        padding: DesignTokens.spacing.lg,
+        padding: DesignTokens.spacing.md,
         gap: DesignTokens.spacing.sm,
     },
     item: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: DesignTokens.spacing.md,
-        borderRadius: DesignTokens.borderRadius.md,
+        padding: DesignTokens.spacing.sm,
+        borderRadius: 16,
         gap: DesignTokens.spacing.md,
     },
     iconBox: {
-        width: 36,
-        height: 36,
-        borderRadius: DesignTokens.borderRadius.sm,
+        width: 38,
+        height: 38,
+        borderRadius: 19,
         alignItems: 'center',
         justifyContent: 'center',
     },
     label: {
         flex: 1,
-        ...DesignTokens.typography.bodyBold,
+        fontSize: 15,
+        fontFamily: 'Inter-SemiBold',
     },
 });

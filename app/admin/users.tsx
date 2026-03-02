@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge } from '../../components/ui/Badge';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Header } from '../../components/ui/Header';
+import { ListSkeleton } from '../../components/ui/LoadingSkeleton';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { ADMIN_NAV_ITEMS } from '../../constants/navigation';
@@ -165,12 +166,28 @@ export default function AdminUsersPage() {
         fetchUsers();
     }, [fetchUsers]);
 
+    const [sortField, setSortField] = useState<'name' | 'role'>('name');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
     const filteredUsers = users.filter((user: any) => {
         const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
         const matchesSearch = fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (user.email || '').toLowerCase().includes(searchQuery.toLowerCase());
         const matchesFilter = selectedFilter === 'all' || (user.status || 'active') === selectedFilter;
         return matchesSearch && matchesFilter;
+    }).sort((a: any, b: any) => {
+        let valA, valB;
+        if (sortField === 'name') {
+            valA = `${a.first_name || ''} ${a.last_name || ''}`.toLowerCase();
+            valB = `${b.first_name || ''} ${b.last_name || ''}`.toLowerCase();
+        } else {
+            valA = (a.role || '').toLowerCase();
+            valB = (b.role || '').toLowerCase();
+        }
+
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
     });
 
     const filters = [
@@ -269,8 +286,8 @@ export default function AdminUsersPage() {
             </View>
 
             {isLoading ? (
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                    <ActivityIndicator size="large" color={colors.primary} />
+                <View style={styles.content}>
+                    <ListSkeleton count={6} />
                 </View>
             ) : (
                 <ScrollView
@@ -487,6 +504,7 @@ const styles = {
     searchContainer: {
         paddingHorizontal: DesignTokens.spacing.lg,
         paddingBottom: DesignTokens.spacing.md,
+        paddingTop: DesignTokens.spacing.sm,
     },
     searchBox: {
         flexDirection: 'row' as const,
@@ -519,7 +537,7 @@ const styles = {
     },
     filterText: {
         fontSize: DesignTokens.typography.caption.fontSize,
-        fontFamily: Fonts.bodySemiBold,
+        fontFamily: Fonts.secondaryBold,
     },
     filterBadge: {
         paddingHorizontal: 6,
@@ -579,10 +597,11 @@ const styles = {
     },
     userName: {
         fontSize: 16,
-        fontFamily: Fonts.bodySemiBold,
+        fontFamily: Fonts.headingSemiBold,
     },
     userEmail: {
         fontSize: 13,
+        fontFamily: Fonts.secondary,
     },
     userMeta: {
         flexDirection: 'row' as const,
@@ -606,7 +625,7 @@ const styles = {
     },
     statusText: {
         fontSize: 11,
-        fontFamily: Fonts.bodySemiBold,
+        fontFamily: Fonts.secondaryBold,
     },
     modalOverlay: {
         flex: 1,
@@ -668,7 +687,8 @@ const styles = {
     },
     roleOptionText: {
         fontSize: 12,
-        fontFamily: Fonts.bodyBold,
+        fontFamily: Fonts.cta,
+        letterSpacing: 1,
     },
     modalFooter: {
         padding: DesignTokens.spacing.xl,
@@ -683,8 +703,9 @@ const styles = {
     },
     submitBtnText: {
         color: '#fff',
-        fontSize: 16,
-        fontFamily: Fonts.heading,
+        fontSize: 20,
+        fontFamily: Fonts.cta,
+        letterSpacing: 1,
     },
 };
 

@@ -2,10 +2,6 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 
-// ─────────────────────────────────────────────────────
-//  MANUAL OVERRIDE: pass IP as first argument
-//  e.g.  node scripts/set-ip.js 10.171.1.172
-// ─────────────────────────────────────────────────────
 const manualIp = process.argv[2] || process.env.EXPO_IP;
 if (manualIp) {
     console.log(`[Auto-IP] Manual override: using IP ${manualIp}`);
@@ -16,12 +12,10 @@ if (manualIp) {
 function isPrivateIP(ip) {
     const parts = ip.split('.').map(Number);
 
-    // Skip VirtualBox (192.168.56.x) and VMware (192.168.122.x) default ranges
     if (parts[0] === 192 && parts[1] === 168 && (parts[2] === 56 || parts[2] === 122)) {
         return false;
     }
 
-    // Check for private IP ranges: 10.x.x.x, 172.16-31.x.x, 192.168.x.x
     return (
         parts[0] === 10 ||
         (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
@@ -32,7 +26,6 @@ function isPrivateIP(ip) {
 function getInterfacePriority(name) {
     const n = name.toLowerCase();
 
-    // Skip virtual/docker interfaces
     if (
         n.includes('vethernet') ||
         n.includes('vmware') ||
@@ -40,26 +33,21 @@ function getInterfacePriority(name) {
         n.includes('docker') ||
         n.includes('loopback')
     ) {
-        return -1; // skip
+        return -1; 
     }
 
-    // Ethernet (highest)
     if ((n.includes('ethernet') || n.includes('eth')) && !n.includes('vethernet')) return 4;
 
-    // Wi-Fi (second)
     if (n.includes('wi-fi') || n.includes('wifi') || n.includes('wlan')) return 3;
 
-    // Mobile Tethering / USB / Hotspot (third — this is the key addition)
     if (
         n.includes('tether') ||
         n.includes('mobile') ||
         n.includes('usb') ||
-        n.includes('rndis') ||   // Android USB tethering on Windows
+        n.includes('rndis') ||
         n.includes('local area connection') ||
         n.includes('wireless mobile')
     ) return 2;
-
-    // Any other valid private interface
     return 1;
 }
 
@@ -89,7 +77,6 @@ function getLocalIp() {
         }
     }
 
-    // Sort by priority (highest first)
     candidates.sort((a, b) => b.priority - a.priority);
 
     if (candidates.length > 0) {
