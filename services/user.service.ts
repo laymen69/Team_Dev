@@ -10,6 +10,8 @@ export interface UserCreateData {
     role: string;
     phone?: string;
     status?: string;
+    address?: string;
+    tags?: string;
 }
 
 export interface UserUpdateData {
@@ -22,6 +24,8 @@ export interface UserUpdateData {
     status?: string;
     profile_zone?: string;
     profile_image?: string | null;
+    address?: string;
+    tags?: string;
 }
 
 export const UserService = {

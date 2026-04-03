@@ -11,6 +11,8 @@ import {
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getFullImageUrl } from '../../constants/api';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
 export interface NavItemType {
@@ -26,11 +28,11 @@ interface BottomNavProps {
 
 // Per-item color palettes — cycling through a premium color sequence
 const ITEM_COLORS = [
-    { from: '#6366f1', to: '#818cf8' }, // Indigo
-    { from: '#0ea5e9', to: '#38bdf8' }, // Sky
-    { from: '#f59e0b', to: '#fbbf24' }, // Amber
-    { from: '#10b981', to: '#34d399' }, // Emerald
-    { from: '#f43f5e', to: '#fb7185' }, // Rose
+    { from: '#845cfdff', to: '#000000ff' }, // Indigo
+    { from: '#0ea5e9', to: '#000000ff' }, // Sky
+    { from: '#f59e0b', to: '#000000ff' }, // Amber
+    { from: '#10b981', to: '#000000ff' }, // Emerald
+    { from: '#f43f5e', to: '#000000ff' }, // Rose
 ];
 
 const NavItem = React.memo(({ item, isActive, index, onPress }: {
@@ -39,6 +41,7 @@ const NavItem = React.memo(({ item, isActive, index, onPress }: {
     index: number;
     onPress: () => void;
 }) => {
+    const { user } = useAuth();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const palette = ITEM_COLORS[index % ITEM_COLORS.length];
@@ -164,12 +167,27 @@ const NavItem = React.memo(({ item, isActive, index, onPress }: {
                     </Animated.View>
                 ) : null}
 
-                {/* Icon */}
-                <Ionicons
-                    name={item.icon}
-                    size={isActive ? 20 : 22}
-                    color={isActive ? '#ffffff' : inactiveIconColor}
-                />
+                {/* Icon or Avatar */}
+                {item.label === 'Profile' && user?.profileImage ? (
+                    <Animated.View style={[
+                        styles.avatarContainer,
+                        {
+                            borderColor: isActive ? '#fff' : inactiveIconColor,
+                            transform: [{ scale: isActive ? 1 : 0.9 }]
+                        }
+                    ]}>
+                        <Animated.Image
+                            source={{ uri: getFullImageUrl(user.profileImage) || '' }}
+                            style={styles.avatarImage}
+                        />
+                    </Animated.View>
+                ) : (
+                    <Ionicons
+                        name={item.icon}
+                        size={isActive ? 20 : 22}
+                        color={isActive ? '#ffffff' : inactiveIconColor}
+                    />
+                )}
 
                 {/* Label fades in below icon when active */}
                 <Animated.Text
@@ -363,5 +381,16 @@ const styles = StyleSheet.create({
         fontSize: 10.5,
         letterSpacing: 0.2,
         fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+    },
+    avatarContainer: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        overflow: 'hidden',
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
     },
 });

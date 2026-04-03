@@ -94,6 +94,8 @@ export const AuthService = {
                     status: me.status || undefined,
                     profileZone: me.profile_zone || undefined,
                     profileImage: me.profile_image || null,
+                    address: me.address || undefined,
+                    tags: me.tags || undefined,
                     password: '',
                 };
                 return user;

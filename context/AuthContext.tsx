@@ -87,6 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                     status: me.status || storedUser.status,
                                     profileZone: me.profile_zone || storedUser.profileZone,
                                     profileImage: me.profile_image ?? storedUser.profileImage,
+                                    address: me.address || storedUser.address,
+                                    tags: me.tags || storedUser.tags,
                                 };
                                 setUser(freshUser);
                                 await saveItem(STORAGE_KEY, JSON.stringify(freshUser));
@@ -123,6 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             segments[0] === 'indexMobile' ||
             segments[0] === 'button' ||
             segments[0] === 'page_mobile' ||
+            segments[0] === 'oldplan' ||
             segments[0] === '+not-found';
         const inDashboardGroup = (segments[0] as string) === 'dashboard_web';
         if (inDashboardGroup) return;

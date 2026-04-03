@@ -12,8 +12,11 @@ import {
     View,
 } from 'react-native';
 import { DesignTokens, getColors } from '../../constants/designSystem';
+import { getFullImageUrl } from '../../constants/api';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { PremiumPressable } from './PremiumPressable';
+import { Image } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BUBBLE_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 300);
@@ -42,6 +45,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
 }) => {
     const { theme } = useTheme();
     const colors = getColors(theme);
+    const { user } = useAuth();
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
@@ -99,7 +103,18 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                             ]}
                         >
                             <View style={[styles.header, { borderBottomColor: colors.border }]}>
-                                <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+                                <View style={styles.headerTitleContainer}>
+                                    {user?.profileImage && (
+                                        <Image
+                                            source={{ uri: getFullImageUrl(user.profileImage) || '' }}
+                                            style={styles.headerAvatar}
+                                        />
+                                    )}
+                                    <View>
+                                        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+                                        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{user?.firstName} {user?.lastName}</Text>
+                                    </View>
+                                </View>
                                 <PremiumPressable onPress={onClose} enableScale style={styles.closeBtn}>
                                     <Ionicons name="close" size={20} color={colors.textSecondary} />
                                 </PremiumPressable>
@@ -183,6 +198,23 @@ const styles = StyleSheet.create({
     },
     title: {
         ...DesignTokens.typography.h3,
+    },
+    subtitle: {
+        fontSize: 11,
+        fontFamily: 'Inter-Medium',
+        marginTop: -2,
+    },
+    headerTitleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    headerAvatar: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     closeBtn: {
         padding: 4,

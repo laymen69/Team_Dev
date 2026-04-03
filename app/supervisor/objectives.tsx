@@ -14,7 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Objective, ObjectiveService } from '../../services/objective.service';
 
-export default function SupervisorObjectives() {
+export default function SupervisorObjectives() {    
     const router = useRouter();
     const { user } = useAuth();
     const { theme } = useTheme();

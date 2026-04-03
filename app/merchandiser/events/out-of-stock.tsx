@@ -19,13 +19,13 @@ import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import { Header } from '../../../components/ui/Header';
 import { Input } from '../../../components/ui/Input';
-import { TruckLoadingAnimation } from '../../../components/ui/TruckLoadingAnimation';
 import { DesignTokens, getColors } from '../../../constants/designSystem';
 import { useTheme } from '../../../context/ThemeContext';
 import { useToast } from '../../../context/ToastContext';
 import { Fonts } from '../../../hooks/useFonts';
 import { Article, ArticleService } from '../../../services/article.service';
 import { ReportService } from '../../../services/report.service';
+import { ActivityIndicator } from 'react-native';
 
 export default function OutOfStockEvent() {
     const router = useRouter();
@@ -151,8 +151,9 @@ export default function OutOfStockEvent() {
 
     if (isSubmitting) {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center' }]}>
-                <TruckLoadingAnimation label="Submitting Report..." />
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={{ marginTop: 12, color: colors.textSecondary, fontFamily: Fonts.body }}>Submitting Report...</Text>
             </SafeAreaView>
         );
     }
@@ -283,8 +284,9 @@ export default function OutOfStockEvent() {
                     )}
 
                     {isLoading ? (
-                        <View style={{ flex: 1, justifyContent: 'center' }}>
-                            <TruckLoadingAnimation label="Loading product catalog..." />
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                            <ActivityIndicator size="large" color={colors.primary} />
+                            <Text style={{ marginTop: 12, color: colors.textSecondary, fontFamily: Fonts.body }}>Loading product catalog...</Text>
                         </View>
                     ) : filteredArticles.length === 0 ? (
                         <View style={styles.emptyState}>

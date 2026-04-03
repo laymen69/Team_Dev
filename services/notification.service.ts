@@ -15,7 +15,7 @@ export interface Notification {
 export const NotificationService = {
     getNotifications: async (): Promise<Notification[]> => {
         try {
-            const response = await apiClient.get('/api/notifications/');
+            const response = await apiClient.get('/api/notifications');
             return response.data;
         } catch (error) {
             console.error('Fetch notifications error:', error);
@@ -25,7 +25,7 @@ export const NotificationService = {
 
     getNotificationDetail: async (id: number): Promise<Notification | null> => {
         try {
-            const response = await apiClient.get(`/api/notifications/${id}/`);
+            const response = await apiClient.get(`/api/notifications/${id}`);
             return response.data;
         } catch (error) {
             console.error('Fetch notification detail error:', error);
@@ -35,7 +35,7 @@ export const NotificationService = {
 
     markAsRead: async (id: number): Promise<Notification | null> => {
         try {
-            const response = await apiClient.put(`/api/notifications/${id}/read/`);
+            const response = await apiClient.patch(`/api/notifications/${id}/read`);
             return response.data;
         } catch (error) {
             console.error('Mark as read error:', error);
@@ -43,9 +43,19 @@ export const NotificationService = {
         }
     },
 
+    markAsUnread: async (id: number): Promise<Notification | null> => {
+        try {
+            const response = await apiClient.patch(`/api/notifications/${id}/unread`);
+            return response.data;
+        } catch (error) {
+            console.error('Mark as unread error:', error);
+            return null;
+        }
+    },
+
     markAllAsRead: async (): Promise<boolean> => {
         try {
-            const response = await apiClient.put('/api/notifications/read-all/');
+            const response = await apiClient.post('/api/notifications/read-all');
             return response.status === 200;
         } catch (error) {
             console.error('Mark all as read error:', error);

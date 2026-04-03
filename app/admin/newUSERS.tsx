@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -13,10 +13,8 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
-    Image
+    View
 } from 'react-native';
-import { getFullImageUrl } from '../../constants/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdminWebLayout } from '../../components/admin/WebLayout';
 import { Badge } from '../../components/ui/Badge';
@@ -177,17 +175,6 @@ export default function AdminUsersPage() {
         fetchUsers();
     }, [fetchUsers]);
 
-    // Handle deep linking for edit
-    const { edit: editId } = useLocalSearchParams<{ edit: string }>();
-    useEffect(() => {
-        if (editId && users.length > 0) {
-            const userToEdit = users.find(u => u.id.toString() === editId);
-            if (userToEdit) {
-                openEditModal(userToEdit);
-            }
-        }
-    }, [editId, users]);
-
     const onRefresh = useCallback(() => {
         setRefreshing(true);
         fetchUsers();
@@ -254,16 +241,18 @@ export default function AdminUsersPage() {
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
     const filteredUsers = users.filter((user: any) => {
-        const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-        const matchesSearch = fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (user.email || '').toLowerCase().includes(searchQuery.toLowerCase());
+        const name = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+        const email = (user.email || '').toLowerCase();
+        const query = searchQuery.toLowerCase();
+        
+        const matchesSearch = name.toLowerCase().includes(query) || email.includes(query);
         const matchesFilter = selectedFilter === 'all' || (user.status || 'active') === selectedFilter;
         return matchesSearch && matchesFilter;
     }).sort((a: any, b: any) => {
         let valA, valB;
         if (sortField === 'name') {
-            valA = `${a.first_name || ''} ${a.last_name || ''}`.toLowerCase();
-            valB = `${b.first_name || ''} ${b.last_name || ''}`.toLowerCase();
+            valA = `${a.firstName || ''} ${a.lastName || ''}`.toLowerCase();
+            valB = `${b.firstName || ''} ${b.lastName || ''}`.toLowerCase();
         } else {
             valA = (a.role || '').toLowerCase();
             valB = (b.role || '').toLowerCase();
@@ -374,11 +363,11 @@ export default function AdminUsersPage() {
                         </View>
 
                         <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-                            <View style={{ minWidth: 1000, paddingBottom: 20 }}>
+                            <View style={{ minWidth: 1000 }}>
                                 <UserTable
                                     users={filteredUsers}
                                     onEdit={openEditModal}
-                                    onDelete={(u: any) => handleDeleteUser(u.id, `${u.first_name || u.firstName} ${u.last_name || u.lastName}`)}
+                                    onDelete={(u: any) => handleDeleteUser(u.id, `${u.firstName} ${u.lastName}`)}
                                     colors={colors}
                                     getRoleColor={getRoleColor}
                                     getStatusColor={getStatusColor}
@@ -475,39 +464,15 @@ export default function AdminUsersPage() {
                                     />
                                 </View>
                                 <View style={styles.inputGroup}>
-                                    <Text style={[styles.label, { color: colors.text }]}>Tags</Text>
-                                    <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-                                        {['Field', 'Management', 'Headquarter'].map((tag) => {
-                                            const isSelected = (newUser.tags || '').includes(tag);
-                                            return (
-                                                <TouchableOpacity
-                                                    key={tag}
-                                                    style={[
-                                                        {
-                                                            paddingVertical: 8,
-                                                            paddingHorizontal: 16,
-                                                            borderRadius: 20,
-                                                            borderWidth: 1,
-                                                        },
-                                                        isSelected ? { backgroundColor: colors.primary, borderColor: colors.primary } : { borderColor: colors.border, backgroundColor: 'transparent' }
-                                                    ]}
-                                                    onPress={() => {
-                                                        const currentTag = newUser.tags === tag ? '' : tag;
-                                                        setNewUser({ ...newUser, tags: currentTag });
-                                                    }}
-                                                >
-                                                    <Text style={[
-                                                        { fontSize: 13, fontFamily: Fonts.bodySemiBold },
-                                                        { color: isSelected ? '#fff' : colors.textSecondary }
-                                                    ]}>
-                                                        {tag}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            );
-                                        })}
-                                    </View>
+                                    <Text style={[styles.label, { color: colors.text }]}>Tags (Comma separated)</Text>
+                                    <TextInput
+                                        style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                                        value={newUser.tags}
+                                        onChangeText={(t) => setNewUser({ ...newUser, tags: t })}
+                                        placeholder="Design, UI/UX"
+                                        placeholderTextColor={colors.textMuted}
+                                    />
                                 </View>
-
                                 <View style={styles.inputGroup}>
                                     <Text style={[styles.label, { color: colors.text }]}>Assignable Role</Text>
                                     <View style={styles.roleSelector}>
@@ -636,9 +601,7 @@ export default function AdminUsersPage() {
                             <UserListItem
                                 key={item.id}
                                 item={item}
-                                onPress={() => openEditModal(item)}
-                                onEdit={() => openEditModal(item)}
-                                onDelete={() => handleDeleteUser(item.id, `${item.first_name || item.firstName} ${item.last_name || item.lastName}`)}
+                                onPress={() => handleUserAction(item)}
                                 getRoleColor={getRoleColor}
                                 getInitials={getInitials}
                                 getStatusColor={getStatusColor}
@@ -736,39 +699,15 @@ export default function AdminUsersPage() {
                                 />
                             </View>
                             <View style={styles.inputGroup}>
-                                <Text style={[styles.label, { color: colors.text }]}>Tags</Text>
-                                <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-                                    {['Field', 'Management', 'Headquarter'].map((tag) => {
-                                        const isSelected = (newUser.tags || '').includes(tag);
-                                        return (
-                                            <TouchableOpacity
-                                                key={tag}
-                                                style={[
-                                                    {
-                                                        paddingVertical: 8,
-                                                        paddingHorizontal: 16,
-                                                        borderRadius: 20,
-                                                        borderWidth: 1,
-                                                    },
-                                                    isSelected ? { backgroundColor: colors.primary, borderColor: colors.primary } : { borderColor: colors.border, backgroundColor: 'transparent' }
-                                                ]}
-                                                onPress={() => {
-                                                    const currentTag = newUser.tags === tag ? '' : tag;
-                                                    setNewUser({ ...newUser, tags: currentTag });
-                                                }}
-                                            >
-                                                <Text style={[
-                                                    { fontSize: 13, fontFamily: Fonts.bodySemiBold },
-                                                    { color: isSelected ? '#fff' : colors.textSecondary }
-                                                ]}>
-                                                    {tag}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        );
-                                    })}
-                                </View>
+                                <Text style={[styles.label, { color: colors.text }]}>Tags (Comma separated)</Text>
+                                <TextInput
+                                    style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                                    value={newUser.tags}
+                                    onChangeText={(t) => setNewUser({ ...newUser, tags: t })}
+                                    placeholder="Design, Sales, Merch"
+                                    placeholderTextColor={colors.textMuted}
+                                />
                             </View>
-
                             <View style={styles.inputGroup}>
                                 <Text style={[styles.label, { color: colors.text }]}>Assignable Role</Text>
                                 <View style={styles.roleSelector}>
@@ -818,7 +757,156 @@ export default function AdminUsersPage() {
     );
 }
 
-function UserListItem({ item, onPress, onEdit, onDelete, getRoleColor, getInitials, getStatusColor, colors, getRoleLabel }: any) {
+function UserTable({ users, onEdit, onDelete, colors, getRoleColor, getStatusColor, getInitials, isDark }: any) {
+    const tableHeaderColor = isDark ? '#18181b' : '#f8fafc';
+    const borderColor = isDark ? '#27272a' : '#e2e8f0';
+
+    return (
+        <View style={{ borderRadius: 12, borderWidth: 1, borderColor, overflow: 'hidden', backgroundColor: colors.surface }}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', backgroundColor: tableHeaderColor, paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: borderColor }}>
+                <View style={{ width: 40 }} /> {/* Checkbox placeholder */}
+                <Text style={{ flex: 2, color: colors.textSecondary, fontSize: 13, fontFamily: Fonts.headingSemiBold }}>Name</Text>
+                <Text style={{ flex: 1.5, color: colors.textSecondary, fontSize: 13, fontFamily: Fonts.headingSemiBold }}>Job Title</Text>
+                <Text style={{ flex: 1, color: colors.textSecondary, fontSize: 13, fontFamily: Fonts.headingSemiBold }}>Status</Text>
+                <Text style={{ flex: 2, color: colors.textSecondary, fontSize: 13, fontFamily: Fonts.headingSemiBold }}>Email</Text>
+                <Text style={{ flex: 1.5, color: colors.textSecondary, fontSize: 13, fontFamily: Fonts.headingSemiBold }}>Phone</Text>
+                <Text style={{ flex: 1.5, color: colors.textSecondary, fontSize: 13, fontFamily: Fonts.headingSemiBold }}>Tags</Text>
+                <Text style={{ flex: 2, color: colors.textSecondary, fontSize: 13, fontFamily: Fonts.headingSemiBold }}>Address</Text>
+                <View style={{ width: 40 }} />
+            </View>
+
+            {/* Body */}
+            {users.length === 0 ? (
+                <View style={{ padding: 40, alignItems: 'center' }}>
+                    <Text style={{ color: colors.textMuted }}>No users found</Text>
+                </View>
+            ) : (
+                users.map((user: any) => (
+                    <UserTableRow
+                        key={user.id}
+                        user={user}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                        colors={colors}
+                        getRoleColor={getRoleColor}
+                        getStatusColor={getStatusColor}
+                        getInitials={getInitials}
+                        borderColor={borderColor}
+                    />
+                ))
+            )}
+        </View>
+    );
+}
+
+function UserTableRow({ user, onEdit, onDelete, colors, getRoleColor, getStatusColor, getInitials, borderColor }: any) {
+    const [hovered, setHovered] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    const tags = user.tags ? user.tags.split(',').map((t: string) => t.trim()) : [];
+
+    return (
+        <View
+            // @ts-ignore
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => { setHovered(false); setMenuOpen(false); }}
+            style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: borderColor,
+                backgroundColor: hovered ? (colors.isDark ? '#ffffff05' : '#f8fafc') : 'transparent'
+            }}
+        >
+            <View style={{ width: 40 }}>
+                <View style={{ width: 16, height: 16, borderRadius: 4, borderWidth: 1, borderColor: colors.border }} />
+            </View>
+
+            {/* Name */}
+            <View style={{ flex: 2, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: getRoleColor(user.role) + '20', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: getRoleColor(user.role), fontSize: 11, fontFamily: Fonts.headingSemiBold }}>{getInitials(user.firstName, user.lastName)}</Text>
+                </View>
+                <Text style={{ color: colors.text, fontSize: 14, fontFamily: Fonts.bodyMedium }}>{user.firstName} {user.lastName}</Text>
+            </View>
+
+            {/* Job Title */}
+            <Text style={{ flex: 1.5, color: colors.textSecondary, fontSize: 13 }}>
+                {user.role === 'admin' ? 'Administrator' : user.role === 'supervisor' ? 'Team Lead' : 'Merchandiser'}
+            </Text>
+
+            {/* Status */}
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: getStatusColor(user.status || 'active') }} />
+                <Text style={{ color: colors.text, fontSize: 13, textTransform: 'capitalize' }}>{user.status || 'Active'}</Text>
+            </View>
+
+            {/* Email */}
+            <Text style={{ flex: 2, color: colors.textSecondary, fontSize: 13 }} numberOfLines={1}>{user.email}</Text>
+
+            {/* Phone */}
+            <Text style={{ flex: 1.5, color: colors.textSecondary, fontSize: 13 }} numberOfLines={1}>{user.phone || '-'}</Text>
+
+            {/* Tags */}
+            <View style={{ flex: 1.5, flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                {tags.length > 0 ? tags.map((tag: string, i: number) => (
+                    <View key={i} style={{ backgroundColor: colors.surfaceSecondary, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
+                        <Text style={{ color: colors.textSecondary, fontSize: 11 }}>{tag}</Text>
+                    </View>
+                )) : <Text style={{ color: colors.textMuted, fontSize: 11 }}>-</Text>}
+            </View>
+
+            {/* Address */}
+            <Text style={{ flex: 2, color: colors.textSecondary, fontSize: 13 }} numberOfLines={1}>{user.address || 'Not set'}</Text>
+
+            {/* Actions */}
+            <View style={{ width: 40, position: 'relative' }}>
+                <TouchableOpacity onPress={() => setMenuOpen(!menuOpen)}>
+                    <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
+                </TouchableOpacity>
+
+                {menuOpen && (
+                    <View style={{
+                        position: 'absolute',
+                        right: 0,
+                        top: 24,
+                        width: 120,
+                        backgroundColor: colors.surface,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: borderColor,
+                        elevation: 5,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 8,
+                        zIndex: 100
+                    }}>
+                        <TouchableOpacity
+                            onPress={() => { onEdit(user); setMenuOpen(false); }}
+                            style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: borderColor, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                        >
+                            <Ionicons name="pencil" size={14} color={colors.primary} />
+                            <Text style={{ color: colors.text, fontSize: 13 }}>Update</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => { onDelete(user); setMenuOpen(false); }}
+                            style={{ padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                        >
+                            <Ionicons name="trash" size={14} color={colors.danger} />
+                            <Text style={{ color: colors.danger, fontSize: 13 }}>Delete</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+            </View>
+        </View>
+    );
+}
+
+function UserListItem({ item, onPress, getRoleColor, getInitials, getStatusColor, colors, getRoleLabel }: any) {
     const scaleAnim = new Animated.Value(1);
 
     const onPressIn = () => {
@@ -839,10 +927,8 @@ function UserListItem({ item, onPress, onEdit, onDelete, getRoleColor, getInitia
         }).start();
     };
 
-    const [menuOpen, setMenuOpen] = useState(false);
-
     return (
-        <Animated.View style={{ transform: [{ scale: scaleAnim }], marginBottom: DesignTokens.spacing.md, zIndex: menuOpen ? 100 : 1 }}>
+        <Animated.View style={{ transform: [{ scale: scaleAnim }], marginBottom: DesignTokens.spacing.md }}>
             <Pressable
                 onPress={onPress}
                 onPressIn={onPressIn}
@@ -853,23 +939,19 @@ function UserListItem({ item, onPress, onEdit, onDelete, getRoleColor, getInitia
                         backgroundColor: pressed ? colors.surfaceSecondary : colors.surface,
                         borderColor: pressed ? colors.primary : 'transparent',
                         borderWidth: 1,
-                        shadowOpacity: pressed ? 0.05 : 0.1,
+                        shadowOpacity: pressed ? 0.05 : 0.1, // Reduce shadow on press for "depressed" feel
                     }
                 ]}
             >
                 <View style={[styles.avatar, { backgroundColor: getRoleColor(item.role) + '15' }]}>
-                    {item.profileImage ? (
-                        <Image source={{ uri: getFullImageUrl(item.profileImage) || '' }} style={{ width: 48, height: 48, borderRadius: 24 }} />
-                    ) : (
-                        <Text style={[styles.avatarText, { color: getRoleColor(item.role) }]}>
-                            {getInitials(item.first_name || item.firstName, item.last_name || item.lastName)}
-                        </Text>
-                    )}
+                    <Text style={[styles.avatarText, { color: getRoleColor(item.role) }]}>
+                        {getInitials(item.first_name, item.last_name)}
+                    </Text>
                 </View>
                 <View style={styles.userInfo}>
                     <View style={styles.userTop}>
                         <Text style={[styles.userName, { color: colors.text }]}>
-                            {item.first_name || item.firstName} {item.last_name || item.lastName}
+                            {item.first_name} {item.last_name}
                         </Text>
                         <Badge label={getRoleLabel(item.role)} variant={item.role === 'admin' ? 'danger' : item.role === 'supervisor' ? 'primary' : 'neutral'} size="sm" />
                     </View>
@@ -883,46 +965,7 @@ function UserListItem({ item, onPress, onEdit, onDelete, getRoleColor, getInitia
                         </View>
                     </View>
                 </View>
-                
-                <View style={{ position: 'relative' }}>
-                    <TouchableOpacity onPress={() => setMenuOpen(!menuOpen)} style={{ padding: 4 }}>
-                        <Ionicons name="ellipsis-vertical" size={20} color={colors.textSecondary} />
-                    </TouchableOpacity>
-
-                    {menuOpen && (
-                        <View style={{
-                            position: 'absolute',
-                            right: 0,
-                            top: 30,
-                            width: 140,
-                            backgroundColor: colors.surface,
-                            borderRadius: 12,
-                            borderWidth: 1,
-                            borderColor: colors.border,
-                            shadowColor: "#000",
-                            shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: 0.1,
-                            shadowRadius: 10,
-                            elevation: 5,
-                            zIndex: 1000
-                        }}>
-                            <TouchableOpacity 
-                                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}
-                                onPress={() => { setMenuOpen(false); onEdit ? onEdit() : onPress(); }}
-                            >
-                                <Ionicons name="pencil-outline" size={16} color={colors.primary} />
-                                <Text style={{ color: colors.text, fontSize: 14, fontFamily: Fonts.bodyMedium }}>Update</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 }}
-                                onPress={() => { setMenuOpen(false); onDelete ? onDelete() : null; }}
-                            >
-                                <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                                <Text style={{ color: colors.danger, fontSize: 14, fontFamily: Fonts.bodyMedium }}>Delete</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-                </View>
+                <Ionicons name="ellipsis-vertical-outline" size={20} color={colors.textSecondary} />
             </Pressable>
         </Animated.View>
     );
@@ -1139,162 +1182,5 @@ const styles = {
         letterSpacing: 1,
     },
 };
-
-export function UserTable({ users, onEdit, onDelete, colors, getRoleColor, getStatusColor, getInitials, isDark }: any) {
-    const tableHeaderColor = isDark ? '#18181b' : '#f8fafc';
-    const borderColor = isDark ? '#27272a' : '#e2e8f0';
-
-    return (
-        <View style={{ borderRadius: 12, borderWidth: 1, borderColor, overflow: 'hidden', backgroundColor: colors.surface }}>
-            {/* Header */}
-            <View style={{ flexDirection: 'row', backgroundColor: tableHeaderColor, paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: borderColor }}>
-                <View style={{ width: 40 }} /> {/* Checkbox placeholder */}
-                <Text style={{ flex: 2, color: colors.textSecondary, fontSize: 13, fontFamily: Fonts.headingSemiBold }}>Name</Text>
-                <Text style={{ flex: 1.5, color: colors.textSecondary, fontSize: 13, fontFamily: Fonts.headingSemiBold }}>Job Title</Text>
-                <Text style={{ flex: 1, color: colors.textSecondary, fontSize: 13, fontFamily: Fonts.headingSemiBold }}>Status</Text>
-                <Text style={{ flex: 2, color: colors.textSecondary, fontSize: 13, fontFamily: Fonts.headingSemiBold }}>Email</Text>
-                <Text style={{ flex: 1.5, color: colors.textSecondary, fontSize: 13, fontFamily: Fonts.headingSemiBold }}>Phone</Text>
-                <Text style={{ flex: 1.5, color: colors.textSecondary, fontSize: 13, fontFamily: Fonts.headingSemiBold }}>Tags</Text>
-                <Text style={{ flex: 2, color: colors.textSecondary, fontSize: 13, fontFamily: Fonts.headingSemiBold }}>Address</Text>
-                <View style={{ width: 40 }} />
-            </View>
-
-            {/* Body */}
-            {users.length === 0 ? (
-                <View style={{ padding: 40, alignItems: 'center' }}>
-                    <Text style={{ color: colors.textMuted }}>No users found</Text>
-                </View>
-            ) : (
-                users.map((user: any) => (
-                    <UserTableRow
-                        key={user.id}
-                        user={user}
-                        onEdit={onEdit}
-                        onDelete={onDelete}
-                        colors={colors}
-                        getRoleColor={getRoleColor}
-                        getStatusColor={getStatusColor}
-                        getInitials={getInitials}
-                        borderColor={borderColor}
-                    />
-                ))
-            )}
-        </View>
-    );
-}
-
-export function UserTableRow({ user, onEdit, onDelete, colors, getRoleColor, getStatusColor, getInitials, borderColor }: any) {
-    const [hovered, setHovered] = useState(false);
-    const [menuOpen, setMenuOpen] = useState(false);
-
-    const tags = user.tags ? user.tags.split(',').map((t: string) => t.trim()) : [];
-    const firstName = user.first_name || user.firstName || '';
-    const lastName = user.last_name || user.lastName || '';
-
-    return (
-        <View
-            // @ts-ignore
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => { setHovered(false); setMenuOpen(false); }}
-            style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                borderBottomWidth: 1,
-                borderBottomColor: borderColor,
-                backgroundColor: hovered ? (colors.isDark ? '#ffffff05' : '#f8fafc') : 'transparent'
-            }}
-        >
-            <View style={{ width: 40 }}>
-                <View style={{ width: 16, height: 16, borderRadius: 4, borderWidth: 1, borderColor: colors.border }} />
-            </View>
-
-            {/* Name */}
-            <View style={{ flex: 2, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: getRoleColor(user.role) + '20', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                    {user.profileImage ? (
-                        <Image source={{ uri: getFullImageUrl(user.profileImage) || '' }} style={{ width: 32, height: 32 }} />
-                    ) : (
-                        <Text style={{ color: getRoleColor(user.role), fontSize: 11, fontFamily: Fonts.headingSemiBold }}>{getInitials(firstName, lastName)}</Text>
-                    )}
-                </View>
-                <Text style={{ color: colors.text, fontSize: 14, fontFamily: Fonts.bodyMedium }}>{firstName} {lastName}</Text>
-            </View>
-
-            {/* Job Title */}
-            <Text style={{ flex: 1.5, color: colors.textSecondary, fontSize: 13, textTransform: 'capitalize' }}>
-                {user.role}
-            </Text>
-
-            {/* Status */}
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: getStatusColor(user.status || 'active') }} />
-                <Text style={{ color: colors.text, fontSize: 13, textTransform: 'capitalize' }}>{user.status || 'Active'}</Text>
-            </View>
-
-            {/* Email */}
-            <Text style={{ flex: 2, color: colors.textSecondary, fontSize: 13 }} numberOfLines={1}>{user.email}</Text>
-
-            {/* Phone */}
-            <Text style={{ flex: 1.5, color: colors.textSecondary, fontSize: 13 }} numberOfLines={1}>{user.phone || '-'}</Text>
-
-            {/* Tags */}
-            <View style={{ flex: 1.5, flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
-                {tags.length > 0 ? tags.map((tag: string, i: number) => (
-                    <View key={i} style={{ backgroundColor: colors.surfaceSecondary, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
-                        <Text style={{ color: colors.textSecondary, fontSize: 11 }}>{tag}</Text>
-                    </View>
-                )) : <Text style={{ color: colors.textMuted, fontSize: 11 }}>-</Text>}
-            </View>
-
-            {/* Address */}
-            <Text style={{ flex: 2, color: colors.textSecondary, fontSize: 13 }} numberOfLines={1}>{user.address || '-'}</Text>
-
-            {/* Actions */}
-            <View style={{ width: 40, position: 'relative' }}>
-                <TouchableOpacity onPress={() => setMenuOpen(!menuOpen)}>
-                    <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
-                </TouchableOpacity>
-
-                {menuOpen && (
-                    <View style={{
-                        position: 'absolute',
-                        right: 0,
-                        top: 24,
-                        width: 120,
-                        backgroundColor: colors.surface,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: borderColor,
-                        elevation: 5,
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 8,
-                        zIndex: 100
-                    }}>
-                        <TouchableOpacity
-                            onPress={() => { onEdit(user); setMenuOpen(false); }}
-                            style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: borderColor, flexDirection: 'row', alignItems: 'center', gap: 8 }}
-                        >
-                            <Ionicons name="pencil" size={14} color={colors.primary} />
-                            <Text style={{ color: colors.text, fontSize: 13 }}>Update</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => { onDelete(user); setMenuOpen(false); }}
-                            style={{ padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}
-                        >
-                            <Ionicons name="trash" size={14} color={colors.danger} />
-                            <Text style={{ color: colors.danger, fontSize: 13 }}>Delete</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-            </View>
-        </View>
-    );
-}
-
-
 
 

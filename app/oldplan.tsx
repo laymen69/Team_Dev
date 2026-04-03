@@ -10,14 +10,14 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Badge } from '../../components/ui/Badge';
-import { BottomNav } from '../../components/ui/BottomNav';
-import { Card } from '../../components/ui/Card';
-import { Header } from '../../components/ui/Header';
-import { SectionHeader } from '../../components/ui/SectionHeader';
-import { DesignTokens, getColors } from '../../constants/designSystem';
-import { ADMIN_NAV_ITEMS } from '../../constants/navigation';
-import { useTheme } from '../../context/ThemeContext';
+import { Badge } from '../components/ui/Badge';
+import { BottomNav } from '../components/ui/BottomNav';
+import { Card } from '../components/ui/Card';
+import { Header } from '../components/ui/Header';
+import { SectionHeader } from '../components/ui/SectionHeader';
+import { DesignTokens, getColors } from '../constants/designSystem';
+import { ADMIN_NAV_ITEMS } from '../constants/navigation';
+import { useTheme } from '../context/ThemeContext';
 
 const initialRequests = [
     {

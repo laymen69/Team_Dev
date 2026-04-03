@@ -76,6 +76,19 @@ export default function AdminArticles() {
         setModalVisible(true);
     };
 
+    const handleNameChange = (name: string) => {
+        setForm(f => {
+            const newForm = { ...f, name };
+            // Auto-generate reference for new articles only
+            if (!editing && name.trim().length >= 3) {
+                const prefix = name.substring(0, 3).toUpperCase();
+                const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+                newForm.reference = `${prefix}-${random}-MT`;
+            }
+            return newForm;
+        });
+    };
+
     const handleSave = async () => {
         if (!form.name.trim()) {
             Alert.alert('Error', 'Article name is required');
@@ -213,7 +226,13 @@ export default function AdminArticles() {
                                         placeholder={field.placeholder}
                                         placeholderTextColor={colors.textMuted}
                                         value={(form as any)[field.key]}
-                                        onChangeText={v => setForm(f => ({ ...f, [field.key]: v }))}
+                                        onChangeText={v => {
+                                            if (field.key === 'name') {
+                                                handleNameChange(v);
+                                            } else {
+                                                setForm(f => ({ ...f, [field.key]: v }));
+                                            }
+                                        }}
                                         multiline={field.key === 'description'}
                                         numberOfLines={field.key === 'description' ? 3 : 1}
                                     />

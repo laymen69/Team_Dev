@@ -7,6 +7,7 @@ import { AdminWebLayout } from '../../components/admin/WebLayout';
 import { getColors } from '../../constants/designSystem';
 import { useTheme } from '../../context/ThemeContext';
 import { ReportService } from '../../services/report.service';
+import { NotificationService } from '../../services/notification.service';
 
 export default function BeforeAfterReport() {
     const router = useRouter();
@@ -17,6 +18,7 @@ export default function BeforeAfterReport() {
     const [report, setReport] = useState<any>(null);
     const [reports, setReports] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [processing, setProcessing] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -47,6 +49,33 @@ export default function BeforeAfterReport() {
             alert('Failed to load report details.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleUpdateStatus = async (status: 'approved' | 'rejected') => {
+        if (!report || !id) return;
+        setProcessing(true);
+        try {
+            const updated = await ReportService.updateStatus(Number(id), status);
+            if (updated) {
+                setReport(updated);
+                
+                // Send notification to the user
+                await NotificationService.sendNotification({
+                    user_id: report.user_id,
+                    title: `Report ${status === 'approved' ? 'Approved' : 'Rejected'}`,
+                    message: `Your report "${report.name}" has been ${status}.`,
+                    type: status === 'approved' ? 'success' : 'alert',
+                });
+                
+                if (Platform.OS !== 'web') {
+                    alert(`Report ${status} successfully.`);
+                }
+            }
+        } catch (error) {
+            console.error('Update status error:', error);
+        } finally {
+            setProcessing(false);
         }
     };
 
@@ -116,6 +145,35 @@ export default function BeforeAfterReport() {
                                     </View>
                                 </View>
                             </View>
+
+                            {/* ── Approval Actions ────────────────────────── */}
+                            {report.status === 'pending' && (
+                                <View style={{ flexDirection: 'row', gap: 16, marginTop: 40, borderTopWidth: 1, borderTopColor: activeColors.border, paddingTop: 32 }}>
+                                    <TouchableOpacity
+                                        style={{ flex: 1, backgroundColor: activeColors.danger + '10', borderColor: activeColors.danger, borderWidth: 1, paddingVertical: 16, borderRadius: 14, alignItems: 'center' }}
+                                        onPress={() => handleUpdateStatus('rejected')}
+                                        disabled={processing}
+                                    >
+                                        <Text style={{ color: activeColors.danger, fontWeight: '700', fontSize: 16 }}>Reject Report</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={{ flex: 2, backgroundColor: activeColors.success, paddingVertical: 16, borderRadius: 14, alignItems: 'center', shadowColor: activeColors.success, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12 }}
+                                        onPress={() => handleUpdateStatus('approved')}
+                                        disabled={processing}
+                                    >
+                                        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Approve & Notify User</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            {report.status !== 'pending' && (
+                                <View style={{ marginTop: 40, padding: 20, borderRadius: 16, backgroundColor: report.status === 'approved' ? activeColors.success + '10' : activeColors.danger + '10', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                    <Ionicons name={report.status === 'approved' ? "checkmark-circle" : "close-circle"} size={24} color={report.status === 'approved' ? activeColors.success : activeColors.danger} />
+                                    <Text style={{ color: report.status === 'approved' ? activeColors.success : activeColors.danger, fontWeight: '700', fontSize: 16 }}>
+                                        Report already {report.status}
+                                    </Text>
+                                </View>
+                            )}
                         </View>
                     </View>
                 </AdminWebLayout>
@@ -168,6 +226,26 @@ export default function BeforeAfterReport() {
                                 )}
                             </View>
                         </View>
+
+                        {/* Approval Actions Mobile */}
+                        {report.status === 'pending' && (
+                            <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+                                <TouchableOpacity
+                                    style={{ flex: 1, backgroundColor: activeColors.danger + '10', paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+                                    onPress={() => handleUpdateStatus('rejected')}
+                                    disabled={processing}
+                                >
+                                    <Text style={{ color: activeColors.danger, fontWeight: '700' }}>Reject</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={{ flex: 1, backgroundColor: activeColors.success, paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+                                    onPress={() => handleUpdateStatus('approved')}
+                                    disabled={processing}
+                                >
+                                    <Text style={{ color: '#fff', fontWeight: '700' }}>Approve</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
                     </View>
                 </ScrollView>
 

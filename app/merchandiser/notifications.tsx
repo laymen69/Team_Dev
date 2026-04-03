@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState, useRef } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, View, Platform, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Card } from '../../components/ui/Card';
@@ -13,15 +13,20 @@ import { DesignTokens, getColors } from '../../constants/designSystem';
 import { MERCHANDISER_NAV_ITEMS } from '../../constants/navigation';
 import { useNotifications } from '../../context/NotificationContext';
 import { useTheme } from '../../context/ThemeContext';
+import { Fonts } from '../../hooks/useFonts';
 import { Notification, NotificationService } from '../../services/notification.service';
+import { PremiumPressable } from '../../components/ui/PremiumPressable';
+import { useToast } from '../../context/ToastContext';
 
 export default function MerchandiserNotifications() {
     const router = useRouter();
     const { theme } = useTheme();
     const colors = getColors(theme);
+    const { showToast } = useToast();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
     const loadNotifications = async () => {
         if (!refreshing) setLoading(true);
@@ -47,12 +52,44 @@ export default function MerchandiserNotifications() {
         loadNotifications();
     }, []);
 
-    const getIcon = (type: string) => {
+    const getTypeStyles = (type: string) => {
         switch (type) {
-            case 'alert': return { name: 'warning', color: colors.danger };
-            case 'success': return { name: 'checkmark-circle', color: colors.success };
-            case 'warning': return { name: 'alert-circle', color: colors.warning };
-            default: return { name: 'notifications', color: colors.primary };
+            case 'alert': 
+            case 'report':
+                return { 
+                    icon: 'warning', 
+                    color: colors.danger, 
+                    bg: ['#FFE5E5', '#FFF0F0'],
+                    glow: 'rgba(255, 68, 68, 0.15)'
+                };
+            case 'success': 
+                return { 
+                    icon: 'checkmark-circle', 
+                    color: colors.success, 
+                    bg: ['#E8F5E9', '#F1F8E9'],
+                    glow: 'rgba(76, 175, 80, 0.15)'
+                };
+            case 'warning': 
+                return { 
+                    icon: 'alert-circle', 
+                    color: colors.warning, 
+                    bg: ['#FFF3E0', '#FFF8E1'],
+                    glow: 'rgba(255, 152, 0, 0.15)'
+                };
+            case 'new_gms':
+                return { 
+                    icon: 'storefront', 
+                    color: colors.secondary, 
+                    bg: ['#E3F2FD', '#E1F5FE'],
+                    glow: 'rgba(33, 150, 243, 0.15)'
+                };
+            default: 
+                return { 
+                    icon: 'notifications', 
+                    color: colors.primary, 
+                    bg: ['#E8EAF6', '#EEF2FF'],
+                    glow: 'rgba(63, 81, 181, 0.15)'
+                };
         }
     };
 
@@ -64,6 +101,26 @@ export default function MerchandiserNotifications() {
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
             decrementUnread(1);
         }
+    };
+
+    const handleMarkAsUnread = async (id: number) => {
+        const updated = await NotificationService.markAsUnread(id);
+        if (updated) {
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: false } : n));
+            decrementUnread(-1);
+            showToast({ message: 'Marked as unread', type: 'info' });
+        }
+    };
+
+    const handleLongPress = (id: number) => {
+        Alert.alert(
+            'Mark as Unread',
+            'Are you sure you want to make this notification as unread?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'YES', onPress: () => handleMarkAsUnread(id) }
+            ]
+        );
     };
 
     const handleMarkAllAsRead = async () => {
@@ -91,6 +148,12 @@ export default function MerchandiserNotifications() {
         }
     };
 
+    const sortedNotifications = [...notifications].sort((a, b) => {
+        const timeA = new Date(a.created_at).getTime();
+        const timeB = new Date(b.created_at).getTime();
+        return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+    });
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <Header
@@ -117,33 +180,59 @@ export default function MerchandiserNotifications() {
                     </View>
                 ) : (
                     <>
-                        <SectionHeader title="Staff Alerts" />
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <SectionHeader title="Staff Alerts" />
+                            <TouchableOpacity 
+                                onPress={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                                style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}
+                            >
+                                <Ionicons name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'} size={14} color={colors.textSecondary} style={{ marginRight: 4 }} />
+                                <Text style={{ color: colors.textSecondary, fontFamily: Fonts.body, fontSize: 12 }}>
+                                    {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                         <View style={styles.list}>
-                            {notifications.map((notification) => {
-                                const icon = getIcon(notification.type);
+                            {sortedNotifications.map((notification) => {
+                                const styles_conf = getTypeStyles(notification.type);
                                 return (
-                                    <Card
+                                    <PremiumPressable
                                         key={notification.id}
                                         onPress={() => handleNotificationPress(notification)}
-                                        style={[
-                                            styles.notifCard,
-                                            !notification.is_read && { borderLeftWidth: 4, borderLeftColor: colors.primary }
-                                        ]}
+                                        onLongPress={() => handleLongPress(notification.id)}
+                                        delayLongPress={2000}
+                                        scaleTo={0.97}
+                                        containerStyle={styles.cardContainer}
                                     >
-                                        <View style={[styles.iconBox, { backgroundColor: icon.color + '15' }]}>
-                                            <Ionicons name={icon.name as any} size={22} color={icon.color} />
-                                        </View>
-                                        <View style={styles.notifBody}>
-                                            <View style={styles.notifHeader}>
-                                                <Text style={[styles.notifTitle, { color: colors.text }]}>{notification.title}</Text>
-                                                {!notification.is_read && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
+                                        {!notification.is_read && <View style={[styles.glowEffect, { backgroundColor: styles_conf.glow }]} />}
+                                        <Card
+                                            style={[
+                                                styles.notifCard,
+                                                { borderLeftColor: styles_conf.color },
+                                                !notification.is_read && styles.unreadCard
+                                            ]}
+                                            pointerEvents="none"
+                                        >
+                                            <View style={[styles.iconBox, { backgroundColor: styles_conf.color + '15' }]}>
+                                                <Ionicons name={styles_conf.icon as any} size={22} color={styles_conf.color} />
                                             </View>
-                                            <Text style={[styles.notifMessage, { color: colors.textSecondary }]}>{notification.message}</Text>
-                                            <Text style={[styles.notifTime, { color: colors.textSecondary }]}>
-                                                {formatTime(notification.created_at)}
-                                            </Text>
-                                        </View>
-                                    </Card>
+                                            <View style={styles.notifBody}>
+                                                <View style={styles.notifHeader}>
+                                                    <Text style={[styles.notifTitle, { color: colors.text }]}>{notification.title}</Text>
+                                                    {!notification.is_read && <View style={[styles.unreadDot, { backgroundColor: styles_conf.color }]} />}
+                                                </View>
+                                                <Text style={[styles.notifMessage, { color: colors.textSecondary }]}>{notification.message}</Text>
+                                                <View style={styles.footer}>
+                                                    <View style={[styles.typeTag, { backgroundColor: styles_conf.color + '10' }]}>
+                                                        <Text style={[styles.typeText, { color: styles_conf.color }]}>{notification.type.replace('_', ' ')}</Text>
+                                                    </View>
+                                                    <Text style={[styles.notifTime, { color: colors.textMuted }]}>
+                                                        {formatTime(notification.created_at)}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                        </Card>
+                                    </PremiumPressable>
                                 );
                             })}
                         </View>
@@ -151,26 +240,93 @@ export default function MerchandiserNotifications() {
                 )}
             </ScrollView>
 
-            <BottomNav items={MERCHANDISER_NAV_ITEMS} activeRoute="/merchandiser/profile" />
+            <BottomNav items={MERCHANDISER_NAV_ITEMS} activeRoute="/merchandiser/notifications" />
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    content: { padding: DesignTokens.spacing.lg, paddingBottom: 100 },
-    list: { gap: DesignTokens.spacing.md, marginTop: DesignTokens.spacing.md },
+    content: { padding: DesignTokens.spacing.lg, paddingBottom: 120 },
+    list: { gap: 16, marginTop: DesignTokens.spacing.md },
+    cardContainer: {
+        position: 'relative',
+    },
+    glowEffect: {
+        position: 'absolute',
+        top: -10,
+        left: -10,
+        right: -10,
+        bottom: -10,
+        borderRadius: 24,
+        opacity: 0.5,
+        zIndex: -1,
+    },
     notifCard: {
         flexDirection: 'row',
         gap: DesignTokens.spacing.md,
         padding: DesignTokens.spacing.lg,
+        borderRadius: 20,
+        borderLeftWidth: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.05,
+                shadowRadius: 10,
+            },
+            android: {
+                elevation: 3,
+            }
+        })
     },
-    iconBox: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    notifBody: { flex: 1, gap: 4 },
+    unreadCard: {
+        borderLeftWidth: 5,
+        backgroundColor: '#fff',
+    },
+    iconBox: { 
+        width: 48, 
+        height: 48, 
+        borderRadius: 16, 
+        alignItems: 'center', 
+        justifyContent: 'center',
+    },
+    notifBody: { flex: 1, gap: 6 },
     notifHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    notifTitle: { ...DesignTokens.typography.bodyBold },
-    notifMessage: { ...DesignTokens.typography.body, fontSize: 14, opacity: 0.9 },
-    notifTime: { ...DesignTokens.typography.caption, marginTop: 4, opacity: 0.7 },
+    notifTitle: { 
+        fontSize: 16,
+        fontWeight: '700',
+        fontFamily: Fonts.headingXBold,
+        letterSpacing: -0.3,
+    },
+    notifMessage: { 
+        fontSize: 14, 
+        fontFamily: Fonts.body,
+        lineHeight: 20,
+        opacity: 0.8 
+    },
+    footer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 4,
+    },
+    typeTag: {
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    typeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+    },
+    notifTime: { 
+        fontSize: 11,
+        fontFamily: Fonts.body,
+        opacity: 0.6 
+    },
     unreadDot: { width: 8, height: 8, borderRadius: 4 },
-    empty: { alignItems: 'center', marginTop: 60 },
+    empty: { alignItems: 'center', marginTop: 80, gap: 16 },
 });

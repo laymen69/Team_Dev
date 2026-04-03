@@ -11,6 +11,8 @@ export interface User {
     status?: string;
     profileZone?: string;
     profileImage?: string | null;
+    address?: string;
+    tags?: string;
 }
 
 export interface AuthState {

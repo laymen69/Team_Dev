@@ -2,7 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { getFullImageUrl } from '../../constants/api';
 import { DesignTokens, getColors } from '../../constants/designSystem';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { GlassView } from './GlassView';
 import { PremiumPressable } from './PremiumPressable';
@@ -37,7 +39,10 @@ export const Header: React.FC<HeaderProps> = ({
     const { theme } = useTheme();
     const colors = getColors(theme);
     const router = useRouter();
+    const { user } = useAuth();
     const { unreadCount } = useNotifications();
+
+    const displayAvatar = avatar || (user?.profileImage ? { uri: getFullImageUrl(user.profileImage) } : null);
 
     const renderIconWithBadge = (iconName: keyof typeof Ionicons.glyphMap, onPress?: () => void) => {
         const isNotification = iconName === 'notifications-outline' || iconName === 'notifications';
@@ -78,8 +83,8 @@ export const Header: React.FC<HeaderProps> = ({
                         </PremiumPressable>
                     ) : (
                         <PremiumPressable onPress={onAvatarPress} style={styles.avatarContainer} enableScale disabled={!onAvatarPress}>
-                            {avatar ? (
-                                <Image source={avatar} style={styles.avatar} />
+                            {displayAvatar ? (
+                                <Image source={displayAvatar} style={styles.avatar} />
                             ) : (
                                 <View style={[styles.avatar, styles.avatarInitials, { backgroundColor: colors.primary }]}>
                                     <Text style={styles.initialsText}>

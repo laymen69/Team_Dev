@@ -3,6 +3,7 @@ import { usePathname, useRouter } from 'expo-router';
 import React, { useRef } from 'react';
 import {
     Animated,
+    Image,
     Platform,
     ScrollView,
     StyleSheet,
@@ -11,6 +12,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { getFullImageUrl } from '../../constants/api';
 import { getColors } from '../../constants/designSystem';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -190,8 +192,12 @@ export function AdminWebLayout({ children, title }: { children: React.ReactNode;
                 {/* Footer: user info + sign out */}
                 <View style={[sidebarSt.footer, { borderTopColor: border, paddingHorizontal: isCollapsed ? 12 : 16 }]}>
                     <View style={[sidebarSt.userRow, isCollapsed && { justifyContent: 'center' }]}>
-                        <View style={[sidebarSt.avatar, { backgroundColor: colors.primary + '30', borderColor: colors.primary + '60' }]}>
-                            <Text style={[sidebarSt.avatarText, { color: colors.primary }]}>{user?.firstName?.[0] ?? 'A'}</Text>
+                        <View style={[sidebarSt.avatar, { backgroundColor: colors.primary + '30', borderColor: colors.primary + '60', overflow: 'hidden' }]}>
+                            {user?.profileImage ? (
+                                <Image source={{ uri: getFullImageUrl(user.profileImage) || '' }} style={sidebarSt.avatarImg} />
+                            ) : (
+                                <Text style={[sidebarSt.avatarText, { color: colors.primary }]}>{user?.firstName?.[0] ?? 'A'}</Text>
+                            )}
                         </View>
                         {!isCollapsed && (
                             <>
@@ -233,6 +239,7 @@ const sidebarSt = StyleSheet.create({
     footer: { paddingHorizontal: 16, paddingTop: 16, borderTopWidth: 1 },
     userRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     avatar: { width: 30, height: 30, borderRadius: 8, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+    avatarImg: { width: '100%', height: '100%' },
     avatarText: { fontSize: 13, fontFamily: Fonts.headingSemiBold },
     userName: { fontSize: 13, fontFamily: Fonts.headingSemiBold },
     userEmail: { fontSize: 11, fontFamily: Fonts.body },

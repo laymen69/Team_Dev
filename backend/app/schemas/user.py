@@ -10,6 +10,8 @@ class UserBase(BaseModel):
     status: str = "active"
     is_active: bool = True
     profile_image: Optional[str] = None
+    address: Optional[str] = None
+    tags: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str
@@ -24,6 +26,8 @@ class UserUpdate(BaseModel):
     status: Optional[str] = None
     is_active: Optional[bool] = None
     profile_image: Optional[str] = None
+    address: Optional[str] = None
+    tags: Optional[str] = None
 
 class UserResponse(UserBase):
     id: int

@@ -9,7 +9,8 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
+    Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdminWebLayout } from '../../components/admin/WebLayout';
@@ -24,6 +25,8 @@ import { useNotifications } from '../../context/NotificationContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Fonts } from '../../hooks/useFonts';
 import { Notification, NotificationService } from '../../services/notification.service';
+import { PremiumPressable } from '../../components/ui/PremiumPressable';
+import { useToast } from '../../context/ToastContext';
 
 export default function NotificationsPage() {
     const router = useRouter();
@@ -32,6 +35,8 @@ export default function NotificationsPage() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+    const { showToast } = useToast();
 
     const colors = getColors(theme);
 
@@ -70,8 +75,6 @@ export default function NotificationsPage() {
         }
     };
 
-    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-
     // --- filter helpers ---
     const filterNotifs = (id: string) =>
         notifications.filter(n => {
@@ -101,7 +104,7 @@ export default function NotificationsPage() {
         .sort((a, b) => {
             const dateA = new Date(a.created_at).getTime();
             const dateB = new Date(b.created_at).getTime();
-            return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+            return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
         });
 
     const { decrementUnread, resetUnread } = useNotifications();
@@ -114,6 +117,26 @@ export default function NotificationsPage() {
             ));
             decrementUnread(1);
         }
+    };
+
+    const handleMarkAsUnread = async (id: number) => {
+        const updated = await NotificationService.markAsUnread(id);
+        if (updated) {
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: false } : n));
+            decrementUnread(-1);
+            if (showToast) showToast({ message: 'Marked as unread', type: 'info' });
+        }
+    };
+
+    const handleLongPress = (id: number) => {
+        Alert.alert(
+            'Mark as Unread',
+            'Are you sure you want to make this notification as unread?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'YES', onPress: () => handleMarkAsUnread(id) }
+            ]
+        );
     };
 
     const handleMarkAllAsRead = async () => {
@@ -191,11 +214,11 @@ export default function NotificationsPage() {
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                             <Text style={{ fontSize: 20, fontFamily: Fonts.headingSemiBold, color: colors.text }}>{sectionTitles[selectedFilter] ?? 'Notifications'}</Text>
                             <TouchableOpacity
-                                onPress={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}
+                                onPress={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
                                 style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
                             >
                                 <Ionicons name="swap-vertical" size={16} color={colors.textSecondary} />
-                                <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>{sortOrder === 'newest' ? "Newest First" : "Oldest First"}</Text>
+                                <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>{sortOrder === 'desc' ? "Newest First" : "Oldest First"}</Text>
                             </TouchableOpacity>
                         </View>
 
@@ -302,8 +325,8 @@ export default function NotificationsPage() {
 
                 <SectionHeader
                     title={sectionTitles[selectedFilter] ?? 'Notifications'}
-                    actionLabel={sortOrder === 'newest' ? "Oldest First" : "Newest First"}
-                    onAction={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}
+                    actionLabel={sortOrder === 'desc' ? "Oldest First" : "Newest First"}
+                    onAction={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
                 />
 
                 {loading ? (
@@ -318,21 +341,28 @@ export default function NotificationsPage() {
                         {filteredNotifications.map(item => {
                             const config = getTypeConfig(item.type);
                             return (
-                                <Card
+                                <PremiumPressable
                                     key={item.id}
-                                    style={[styles.notifCard, !item.is_read && { borderLeftWidth: 4, borderLeftColor: colors.primary }]}
                                     onPress={() => handleNotificationPress(item)}
+                                    onLongPress={() => handleLongPress(item.id)}
+                                    delayLongPress={2000}
+                                    scaleTo={0.98}
                                 >
-                                    <View style={[styles.iconContainer, { backgroundColor: config.color + '15' }]}>
-                                        <Ionicons name={config.icon as any} size={24} color={config.color} />
-                                    </View>
-                                    <View style={styles.notifInfo}>
-                                        <Text style={[styles.notifTitle, { color: colors.text }]}>{item.title}</Text>
-                                        <Text style={[styles.notifBody, { color: colors.textSecondary }]}>{item.message}</Text>
-                                        <Text style={[styles.notifTime, { color: colors.textMuted }]}>{formatTime(item.created_at)}</Text>
-                                    </View>
-                                    {!item.is_read && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
-                                </Card>
+                                    <Card
+                                        style={[styles.notifCard, !item.is_read && { borderLeftWidth: 4, borderLeftColor: colors.primary }]}
+                                        pointerEvents="none"
+                                    >
+                                        <View style={[styles.iconContainer, { backgroundColor: config.color + '15' }]}>
+                                            <Ionicons name={config.icon as any} size={24} color={config.color} />
+                                        </View>
+                                        <View style={styles.notifInfo}>
+                                            <Text style={[styles.notifTitle, { color: colors.text }]}>{item.title}</Text>
+                                            <Text style={[styles.notifBody, { color: colors.textSecondary }]}>{item.message}</Text>
+                                            <Text style={[styles.notifTime, { color: colors.textMuted }]}>{formatTime(item.created_at)}</Text>
+                                        </View>
+                                        {!item.is_read && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
+                                    </Card>
+                                </PremiumPressable>
                             );
                         })}
                     </View>

@@ -11,6 +11,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdminWebLayout } from '../../components/admin/WebLayout';
@@ -174,6 +175,42 @@ const HoverRow = ({ children, C }: any) => {
   );
 };
 
+const ActionMenu = ({ u, router, C, onDelete }: any) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ position: 'relative', zIndex: 999 }}>
+      <TouchableOpacity
+        style={[wSt.moreBtn, { borderColor: C.border, backgroundColor: open ? C.primary + '20' : 'transparent' }]}
+        onPress={() => setOpen(!open)}
+      >
+        <Ionicons name="ellipsis-horizontal" size={16} color={open ? C.primary : C.textMuted} />
+      </TouchableOpacity>
+      {open && (
+        <View style={{
+          position: 'absolute', right: 0, top: 32, width: 140,
+          backgroundColor: C.card, borderRadius: 8, borderWidth: 1, borderColor: C.border,
+          shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5,
+        }}>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderBottomWidth: 1, borderBottomColor: C.border }}
+            onPress={() => { setOpen(false); router.push(`/admin/users?edit=${u.id}`); }}
+          >
+            <Ionicons name="pencil-outline" size={14} color={C.primary} />
+            <Text style={{ color: C.text, fontSize: 13, fontFamily: Fonts.body }}>Update</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10 }}
+            onPress={() => { setOpen(false); onDelete(); }}
+          >
+            <Ionicons name="trash-outline" size={14} color={C.danger} />
+            <Text style={{ color: C.danger, fontSize: 13, fontFamily: Fonts.body }}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+};
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const router = useRouter();
@@ -252,19 +289,21 @@ export default function AdminDashboard() {
   const pct = (n: number) => total > 0 ? Math.round((n / total) * 100) : 0;
 
   // Table data
-  const filteredUsers = allUsers.filter(u => {
-    const name = `${u.firstName} ${u.lastName}`.toLowerCase();
+  const filteredUsers = allUsers.filter((u: any) => {
+    const fn = u.first_name || u.firstName || '';
+    const ln = u.last_name || u.lastName || '';
+    const name = `${fn} ${ln}`.toLowerCase();
     const matchSearch = name.includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchRole = roleFilter === 'All' || u.role.toLowerCase() === roleFilter.toLowerCase();
-    const mockOnline = !!u.profileImage;
-    const matchStatus = statusFilter === 'All' || (statusFilter === 'Active' ? mockOnline : !mockOnline);
+    const userStatus = u.status || 'active';
+    const matchStatus = statusFilter === 'All' || userStatus.toLowerCase() === statusFilter.toLowerCase();
     return matchSearch && matchRole && matchStatus;
   });
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
   const safePage = Math.min(tablePage, totalPages);
   const pageUsers = filteredUsers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const adminName = user ? `${user.firstName} ${user.lastName}` : 'Admin';
+  const adminName = user ? `${(user as any).first_name || user.firstName || ''} ${(user as any).last_name || user.lastName || ''}`.trim() || 'Admin' : 'Admin';
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
@@ -530,7 +569,7 @@ export default function AdminDashboard() {
                   </TouchableOpacity>
                 ))}
                 <View style={{ width: 1, height: 20, backgroundColor: C.border, marginHorizontal: 4 }} />
-                {(['All', 'Active', 'Offline']).map(s => (
+                {(['All', 'Active', 'Inactive']).map(s => (
                   <TouchableOpacity
                     key={s}
                     style={[wSt.chip, { borderColor: C.border }, statusFilter === s && { backgroundColor: C.surface }]}
@@ -545,33 +584,53 @@ export default function AdminDashboard() {
             {/* Table Header */}
             <View style={[wSt.tableHeader, { borderBottomColor: C.border, backgroundColor: isDark ? '#ffffff03' : '#00000003' }]}>
               <Text style={[wSt.th, { color: C.textMuted, width: 220 }]}>Member</Text>
-              <Text style={[wSt.th, { color: C.textMuted, width: 140 }]}>Role</Text>
+              <Text style={[wSt.th, { color: C.textMuted, width: 120 }]}>Role</Text>
               <Text style={[wSt.th, { color: C.textMuted, width: 120 }]}>Status</Text>
-              <Text style={[wSt.th, { color: C.textMuted, flex: 1 }]}>Email</Text>
+              <Text style={[wSt.th, { color: C.textMuted, width: 140 }]}>Phone</Text>
+              <Text style={[wSt.th, { color: C.textMuted, width: 140 }]}>Tags</Text>
+              <Text style={[wSt.th, { color: C.textMuted, flex: 1 }]}>Address</Text>
               <Text style={[wSt.th, { color: C.textMuted, width: 80, textAlign: 'right' }]}>Actions</Text>
             </View>
 
             {/* Rows */}
             {pageUsers.map((u, i) => {
-              const online = !!u.profileImage;
+              const firstName = (u as any).first_name || u.firstName || '';
+              const lastName = (u as any).last_name || u.lastName || '';
+              const status = (u as any).status || 'active';
+              const statusColor = status === 'active' ? C.success : status === 'inactive' ? C.danger : C.warning;
               return (
                 <HoverRow key={u.id ?? i} C={C}>
                   <View style={{ width: 220, flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: C.primary + '30', borderWidth: 1, borderColor: C.primary + '50', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
-                      <Text style={{ color: C.primary, fontSize: 12, fontFamily: Fonts.headingSemiBold }}>{u.firstName?.[0]}</Text>
+                    <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: C.primary + '30', borderWidth: 1, borderColor: C.primary + '50', justifyContent: 'center', alignItems: 'center', marginRight: 10, overflow: 'hidden' }}>
+                      {u.profileImage ? (
+                        <Image source={{ uri: getFullImageUrl(u.profileImage) || '' }} style={{ width: 28, height: 28 }} />
+                      ) : (
+                        <Text style={{ color: C.primary, fontSize: 12, fontFamily: Fonts.headingSemiBold }}>{firstName?.[0] || '?'}</Text>
+                      )}
                     </View>
-                    <Text style={{ color: C.text, fontSize: 13, fontFamily: Fonts.headingSemiBold }} numberOfLines={1}>{u.firstName} {u.lastName}</Text>
+                    <Text style={{ color: C.text, fontSize: 13, fontFamily: Fonts.headingSemiBold }} numberOfLines={1}>{firstName} {lastName}</Text>
                   </View>
-                  <Text style={{ width: 140, color: C.textMuted, fontSize: 13, fontFamily: Fonts.body, textTransform: 'capitalize' }}>{u.role}</Text>
+                  <Text style={{ width: 120, color: C.textMuted, fontSize: 13, fontFamily: Fonts.body, textTransform: 'capitalize' }}>{u.role}</Text>
                   <View style={{ width: 120, flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: online ? C.success : C.textMuted, marginRight: 8 }} />
-                    <Text style={{ color: C.textMuted, fontSize: 13, fontFamily: Fonts.body }}>{online ? 'Active' : 'Offline'}</Text>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: statusColor, marginRight: 8 }} />
+                    <Text style={{ color: C.textMuted, fontSize: 13, fontFamily: Fonts.body, textTransform: 'capitalize' }}>{status}</Text>
                   </View>
-                  <Text style={{ flex: 1, color: C.textMuted, fontSize: 13, fontFamily: Fonts.body }} numberOfLines={1}>{u.email}</Text>
-                  <View style={{ width: 80, alignItems: 'flex-end' }}>
-                    <TouchableOpacity style={[wSt.moreBtn, { borderColor: C.border, backgroundColor: isDark ? '#18181b' : '#f4f4f5' }]} onPress={() => router.push('/admin/users')}>
-                      <Ionicons name="ellipsis-horizontal" size={16} color={C.textMuted} />
-                    </TouchableOpacity>
+                  <Text style={{ width: 140, color: C.textMuted, fontSize: 13, fontFamily: Fonts.body }} numberOfLines={1}>{(u as any).phone || '-'}</Text>
+                  <View style={{ width: 140, flexDirection: 'row', gap: 4 }}>
+                    {((u as any).tags || '').split(',').filter(Boolean).slice(0, 2).map((tag: string, idx: number) => (
+                      <View key={idx} style={{ backgroundColor: C.surface, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                        <Text style={{ fontSize: 10, color: C.textMuted }}>{tag.trim()}</Text>
+                      </View>
+                    ))}
+                    {!((u as any).tags) && <Text style={{ color: C.textMuted, fontSize: 13 }}>-</Text>}
+                  </View>
+                  <Text style={{ flex: 1, color: C.textMuted, fontSize: 13, fontFamily: Fonts.body }} numberOfLines={1}>{(u as any).address || '-'}</Text>
+                  <View style={{ width: 80, alignItems: 'flex-end', position: 'relative' }}>
+                    <ActionMenu u={{ ...u, firstName, lastName }} router={router} C={C} onDelete={() => {
+                        if (window.confirm(`Delete ${firstName} ${lastName}?`)) {
+                            UserService.delete(u.id as unknown as number).then(() => loadData(true));
+                        }
+                    }} />
                   </View>
                 </HoverRow>
               );
