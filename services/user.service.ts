@@ -1,5 +1,6 @@
 import { User } from '../types/auth';
 import apiClient from './apiClient';
+import { mapUser } from './mappers';
 
 export interface UserCreateData {
     email: string;
@@ -24,10 +25,15 @@ export interface UserUpdateData {
 }
 
 export const UserService = {
-    getAll: async (): Promise<User[]> => {
+    getAll: async (params?: { skip?: number; limit?: number }): Promise<User[]> => {
         try {
-            const response = await apiClient.get('/api/users/');
-            return response.data;
+            const response = await apiClient.get('/api/users/', {
+                params: {
+                    skip: params?.skip ?? 0,
+                    limit: params?.limit ?? 50,
+                },
+            });
+            return response.data.map((u: any) => mapUser(u));
         } catch (error) {
             console.error('Fetch users error:', error);
             return [];
@@ -37,14 +43,7 @@ export const UserService = {
     getMe: async (): Promise<User | null> => {
         try {
             const response = await apiClient.get('/api/users/me');
-            const data = response.data;
-            return {
-                ...data,
-                firstName: data.first_name,
-                lastName: data.last_name,
-                profileZone: data.profile_zone,
-                profileImage: data.profile_image,
-            };
+            return mapUser(response.data);
         } catch (error) {
             console.error('Fetch me error:', error);
             return null;
@@ -64,15 +63,8 @@ export const UserService = {
     update: async (id: string | number, userData: UserUpdateData): Promise<User | null> => {
         try {
             const response = await apiClient.put(`/api/users/${id}`, userData);
-            const data = response.data;
-            if (data) {
-                return {
-                    ...data,
-                    firstName: data.first_name,
-                    lastName: data.last_name,
-                    profileZone: data.profile_zone,
-                    profileImage: data.profile_image,
-                };
+            if (response.data) {
+                return mapUser(response.data);
             }
             return null;
         } catch (error) {

@@ -53,7 +53,7 @@ export default function NotificationDetail() {
             if (data && data.action_link && data.action_link.includes('id=')) {
                 const reportId = data.action_link.split('id=')[1];
                 if (reportId) {
-                    const reportData = await ReportService.getReportById(Number(reportId));
+                    const reportData = await ReportService.getById(Number(reportId));
                     setRelatedReport(reportData);
                 }
             } else if (data && data.type === 'report') {

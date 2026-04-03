@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/images/web.png",
       "resizeMode": "contain",
-      "backgroundColor": "#a8e7edff"
+      "backgroundColor": "#09090b"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -21,12 +21,12 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/merch.png",
-        "backgroundColor": "#a8e7edff"
+        "backgroundColor": "#09090b"
       },
       "package": "com.teamdev.merchandisingteam"
     },
     "web": {
-      "favicon": "./assets/images/web.png"
+      "favicon": "./assets/images/merch.png"
     },
     "plugins": [
       "expo-router",

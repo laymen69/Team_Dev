@@ -6,6 +6,7 @@ import {
     Alert,
     Animated,
     Modal,
+    Platform,
     Pressable,
     RefreshControl,
     ScrollView,
@@ -15,6 +16,7 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AdminWebLayout } from '../../components/admin/WebLayout';
 import { Badge } from '../../components/ui/Badge';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Header } from '../../components/ui/Header';
@@ -166,6 +168,63 @@ export default function AdminUsersPage() {
         fetchUsers();
     }, [fetchUsers]);
 
+    const handleDeleteUser = async (userId: number, userName: string) => {
+        const performDelete = async () => {
+            try {
+                setIsLoading(true);
+                const success = await UserService.delete(userId);
+                if (success) {
+                    Alert.alert('Success', 'User deleted successfully');
+                    fetchUsers();
+                } else {
+                    Alert.alert('Error', 'Failed to delete user');
+                }
+            } catch (error: any) {
+                Alert.alert('Error', error.message || 'Failed to delete user');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (Platform.OS === 'web') {
+            if (window.confirm(`Are you sure you want to delete ${userName}? This action cannot be undone.`)) {
+                await performDelete();
+            }
+        } else {
+            Alert.alert(
+                'Confirm Deletion',
+                `Are you sure you want to delete ${userName}? This action cannot be undone.`,
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', style: 'destructive', onPress: performDelete }
+                ]
+            );
+        }
+    };
+
+    const handleUserAction = (item: any) => {
+        if (Platform.OS === 'web') {
+            // Simple approach for web without a full popover library
+            const choice = window.confirm(`Actions for ${item.first_name}:\nOK = Edit\nCancel = Delete (or close)`);
+            if (choice) {
+                openEditModal(item);
+            } else {
+                // Secondary check for delete to avoid accidental deletion on cancel
+                handleDeleteUser(item.id, `${item.first_name} ${item.last_name}`);
+            }
+        } else {
+            Alert.alert(
+                'User Actions',
+                `Select an action for ${item.first_name} ${item.last_name}`,
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Edit', onPress: () => openEditModal(item) },
+                    { text: 'Delete', style: 'destructive', onPress: () => handleDeleteUser(item.id, `${item.first_name} ${item.last_name}`) }
+                ]
+            );
+        }
+    };
+
     const [sortField, setSortField] = useState<'name' | 'role'>('name');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -223,6 +282,206 @@ export default function AdminUsersPage() {
         if (firstName && lastName) return `${firstName[0]}${lastName[0]}`.toUpperCase();
         if (firstName) return firstName.substring(0, 2).toUpperCase();
         return '??';
+    }
+
+    if (Platform.OS === 'web') {
+        return (
+            <AdminWebLayout title="User Management">
+                <View style={[styles.searchContainer, { backgroundColor: 'transparent', paddingHorizontal: 0 }]}>
+                    <View style={[styles.searchBox, { backgroundColor: colors.surfaceSecondary }]}>
+                        <Ionicons name="search" size={20} color={colors.textMuted} />
+                        <TextInput
+                            style={[styles.searchInput, { color: colors.text }]}
+                            placeholder="Search by name or email..."
+                            placeholderTextColor={colors.textMuted}
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                        />
+                    </View>
+                </View>
+
+                <View style={[styles.filterScrollWrapper, { marginBottom: 24 }]}>
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                        {filters.map(filter => (
+                            <TouchableOpacity
+                                key={filter.id}
+                                style={[
+                                    styles.filterBtn,
+                                    { backgroundColor: selectedFilter === filter.id ? colors.primary : colors.surfaceSecondary }
+                                ]}
+                                onPress={() => setSelectedFilter(filter.id)}
+                            >
+                                <Text style={[
+                                    styles.filterText,
+                                    { color: selectedFilter === filter.id ? '#fff' : colors.textSecondary }
+                                ]}>
+                                    {filter.label}
+                                </Text>
+                                <View style={[
+                                    styles.filterBadge,
+                                    { backgroundColor: selectedFilter === filter.id ? 'rgba(255,255,255,0.3)' : colors.border }
+                                ]}>
+                                    <Text style={[
+                                        styles.filterBadgeText,
+                                        { color: selectedFilter === filter.id ? '#fff' : colors.textSecondary }
+                                    ]}>
+                                        {filter.count}
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+
+                {isLoading ? (
+                    <ListSkeleton count={8} />
+                ) : (
+                    <View style={{ gap: 12 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <Text style={{ fontSize: 18, fontFamily: Fonts.headingSemiBold, color: colors.text }}>Team Members</Text>
+                            <TouchableOpacity
+                                style={{ backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                                onPress={openCreateModal}
+                            >
+                                <Ionicons name="person-add-outline" size={18} color="#fff" />
+                                <Text style={{ color: '#fff', fontFamily: Fonts.headingSemiBold }}>Add User</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
+                            {filteredUsers.length === 0 ? (
+                                <View style={[styles.empty, { width: '100%' }]}>
+                                    <Ionicons name="people-outline" size={64} color={colors.textMuted} />
+                                    <Text style={{ color: colors.textSecondary, marginTop: DesignTokens.spacing.md }}>No users found</Text>
+                                </View>
+                            ) : (
+                                filteredUsers.map((item: any) => (
+                                    <View key={item.id} style={{ width: '48.5%' }}>
+                                        <UserListItem
+                                            item={item}
+                                            onPress={() => handleUserAction(item)}
+                                            getRoleColor={getRoleColor}
+                                            getInitials={getInitials}
+                                            getStatusColor={getStatusColor}
+                                            getRoleLabel={getRoleLabel}
+                                            colors={colors}
+                                        />
+                                    </View>
+                                ))
+                            )}
+                        </View>
+                    </View>
+                )}
+
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={modalVisible}
+                    onRequestClose={closeModal}
+                >
+                    <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }]}>
+                        <View style={[styles.modalContent, { backgroundColor: colors.surface, borderRadius: 24, width: '100%', maxWidth: 500, height: 'auto', padding: 32 }]}>
+                            <View style={styles.modalHeader}>
+                                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                                    {isEditing ? 'Edit User Profile' : 'Add New Staff Member'}
+                                </Text>
+                                <TouchableOpacity onPress={closeModal}>
+                                    <Ionicons name="close" size={24} color={colors.textSecondary} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView style={[styles.modalBody, { paddingHorizontal: 0 }]}>
+                                <View style={styles.inputGroup}>
+                                    <Text style={[styles.label, { color: colors.text }]}>Email Address</Text>
+                                    <TextInput
+                                        style={[styles.input, { color: Platform.OS === 'web' ? '#000' : colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                                        value={newUser.email}
+                                        onChangeText={(t) => setNewUser({ ...newUser, email: t })}
+                                        placeholder="john@example.com"
+                                        keyboardType="email-address"
+                                        autoCapitalize="none"
+                                        placeholderTextColor={colors.textMuted}
+                                    />
+                                </View>
+                                <View style={styles.row}>
+                                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                                        <Text style={[styles.label, { color: colors.text }]}>First Name</Text>
+                                        <TextInput
+                                            style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                                            value={newUser.first_name}
+                                            onChangeText={(t) => setNewUser({ ...newUser, first_name: t })}
+                                            placeholder="John"
+                                            placeholderTextColor={colors.textMuted}
+                                        />
+                                    </View>
+                                    <View style={{ width: 12 }} />
+                                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                                        <Text style={[styles.label, { color: colors.text }]}>Last Name</Text>
+                                        <TextInput
+                                            style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                                            value={newUser.last_name}
+                                            onChangeText={(t) => setNewUser({ ...newUser, last_name: t })}
+                                            placeholder="Doe"
+                                            placeholderTextColor={colors.textMuted}
+                                        />
+                                    </View>
+                                </View>
+                                <View style={styles.inputGroup}>
+                                    <Text style={[styles.label, { color: colors.text }]}>Temporary Password</Text>
+                                    <TextInput
+                                        style={[styles.input, { color: Platform.OS === 'web' ? '#000' : colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                                        value={newUser.password}
+                                        onChangeText={(t) => setNewUser({ ...newUser, password: t })}
+                                        placeholder={isEditing ? "(Leave blank to keep current)" : "******"}
+                                        secureTextEntry
+                                        placeholderTextColor={colors.textMuted}
+                                    />
+                                </View>
+                                <View style={styles.inputGroup}>
+                                    <Text style={[styles.label, { color: colors.text }]}>Assignable Role</Text>
+                                    <View style={styles.roleSelector}>
+                                        {['admin', 'supervisor', 'merchandiser'].map((r) => (
+                                            <TouchableOpacity
+                                                key={r}
+                                                style={[
+                                                    styles.roleOption,
+                                                    newUser.role === r && { backgroundColor: colors.primary, borderColor: colors.primary },
+                                                    { borderColor: colors.border }
+                                                ]}
+                                                onPress={() => setNewUser({ ...newUser, role: r })}
+                                            >
+                                                <Text style={[
+                                                    styles.roleOptionText,
+                                                    { color: newUser.role === r ? '#fff' : colors.textSecondary }
+                                                ]}>
+                                                    {r.toUpperCase()}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+                            </ScrollView>
+
+                            <View style={[styles.modalFooter, { padding: 0, borderTopWidth: 0, marginTop: 24 }]}>
+                                <TouchableOpacity
+                                    style={[styles.submitBtn, { backgroundColor: colors.primary }]}
+                                    onPress={handleCreateUser}
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? (
+                                        <ActivityIndicator color="#fff" />
+                                    ) : (
+                                        <Text style={styles.submitBtnText}>
+                                            {isEditing ? 'Save Changes' : 'Confirm Registration'}
+                                        </Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+            </AdminWebLayout>
+        );
     }
 
     return (
@@ -306,7 +565,7 @@ export default function AdminUsersPage() {
                             <UserListItem
                                 key={item.id}
                                 item={item}
-                                onPress={() => openEditModal(item)}
+                                onPress={() => handleUserAction(item)}
                                 getRoleColor={getRoleColor}
                                 getInitials={getInitials}
                                 getStatusColor={getStatusColor}
@@ -491,7 +750,7 @@ function UserListItem({ item, onPress, getRoleColor, getInitials, getStatusColor
                         </View>
                     </View>
                 </View>
-                <Ionicons name="create-outline" size={20} color={colors.primary} />
+                <Ionicons name="ellipsis-vertical-outline" size={20} color={colors.textSecondary} />
             </Pressable>
         </Animated.View>
     );

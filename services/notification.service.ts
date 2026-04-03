@@ -55,6 +55,7 @@ export const NotificationService = {
 
     notifyAdmins: async (data: Omit<Notification, 'id' | 'is_read' | 'created_at' | 'user_id'>): Promise<boolean> => {
         try {
+            // Reverting to POST body as the backend expects NotificationBase as the JSON body
             const response = await apiClient.post('/api/notifications/notify-admins/', data);
             return response.status === 200 || response.status === 201;
         } catch (error) {

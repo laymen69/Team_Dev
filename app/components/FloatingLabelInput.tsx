@@ -1,6 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+    Animated,
+    Platform,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import { APP_COLORS } from '../../constants/appColors';
 import { Fonts } from '../../hooks/useFonts';
 
@@ -12,6 +19,7 @@ interface FloatingLabelInputProps {
     keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
     autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
     icon: keyof typeof Ionicons.glyphMap;
+    variant?: 'light' | 'dark';
     /** @deprecated — ignored, component always uses the dark auth palette */
     theme?: object;
 }
@@ -19,6 +27,7 @@ interface FloatingLabelInputProps {
 const FloatingLabelInput = ({
     label, value, onChangeText, secureTextEntry,
     keyboardType = 'default', autoCapitalize = 'none', icon,
+    variant = 'dark',
 }: FloatingLabelInputProps) => {
     const [isFocused, setIsFocused] = useState(false);
     const [hiddenPassword, setHiddenPassword] = useState(secureTextEntry);
@@ -31,6 +40,13 @@ const FloatingLabelInput = ({
             useNativeDriver: false,
         }).start();
     }, [isFocused, value]);
+
+    const isLight = variant === 'light';
+    const textColor = isLight ? '#000000' : APP_COLORS.textPrimary;
+    const borderColor = isLight ? '#E2E8F0' : APP_COLORS.inputBorder;
+    const labelColor = isLight ? '#475569' : APP_COLORS.textSecondary;
+    const bgColor = isLight ? '#fff' : 'transparent';
+    const icColor = isLight ? '#64748B' : APP_COLORS.textSecondary;
 
     const labelStyle = {
         position: 'absolute' as const,
@@ -45,37 +61,38 @@ const FloatingLabelInput = ({
         }),
         color: animatedValue.interpolate({
             inputRange: [0, 1],
-            outputRange: [APP_COLORS.textSecondary, APP_COLORS.accent],
+            outputRange: [labelColor, APP_COLORS.accent],
         }),
         backgroundColor: animatedValue.interpolate({
             inputRange: [0, 1],
-            outputRange: ['transparent', 'white'],
+            outputRange: ['transparent', isLight ? '#fff' : '#0F172A'], // Pure white for light, Slate for dark
         }),
-        paddingHorizontal: 2,
+        paddingHorizontal: 6,
         zIndex: 1,
         fontFamily: Fonts.bodySemiBold,
     };
 
     return (
         <View style={[styles.inputContainer, {
-            borderColor: isFocused ? APP_COLORS.accent : APP_COLORS.inputBorder,
+            borderColor: isFocused ? APP_COLORS.accent : borderColor,
             borderWidth: isFocused ? 1.5 : 1,
+            backgroundColor: bgColor,
         }]}>
             {/* Icon */}
             <View style={{ marginRight: 12, justifyContent: 'center' }}>
                 <Ionicons
                     name={icon}
                     size={20}
-                    color={isFocused ? APP_COLORS.accent : APP_COLORS.textSecondary}
+                    color={isFocused ? APP_COLORS.accent : icColor}
                 />
             </View>
 
             {/* Floating label */}
-            <Animated.Text style={labelStyle}>{label}</Animated.Text>
+            <Animated.Text pointerEvents="none" style={labelStyle}>{label}</Animated.Text>
 
             {/* Text input */}
             <TextInput
-                style={styles.input}
+                style={[styles.input, { color: textColor }]}
                 value={value}
                 onChangeText={onChangeText}
                 onFocus={() => setIsFocused(true)}
@@ -83,7 +100,7 @@ const FloatingLabelInput = ({
                 secureTextEntry={hiddenPassword}
                 keyboardType={keyboardType}
                 autoCapitalize={autoCapitalize}
-                placeholderTextColor="rgba(255,255,255,0.25)"
+                placeholderTextColor="transparent"
             />
 
             {/* Show/hide password toggle */}
@@ -92,7 +109,7 @@ const FloatingLabelInput = ({
                     <Ionicons
                         name={hiddenPassword ? 'eye-outline' : 'eye-off-outline'}
                         size={20}
-                        color={APP_COLORS.textSecondary}
+                        color={icColor}
                     />
                 </TouchableOpacity>
             )}
@@ -116,8 +133,8 @@ const styles = StyleSheet.create({
         height: '100%',
         paddingTop: 18,
         paddingBottom: 4,
-        color: APP_COLORS.textPrimary,
         fontFamily: Fonts.body,
+        ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}) as any,
     },
 });
 

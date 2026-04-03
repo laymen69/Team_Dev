@@ -3,6 +3,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.models.user import User
+from app.models.notification import Notification
+from app.models.complaint import Complaint
+from app.models.workday import Workday
+from app.models.report import Report
+from app.models.objective import Objective
+from app.models.assignment import GMSAssignment
+from app.models.leave_request import LeaveRequest
 from app.schemas.user import UserCreate, UserResponse, UserBase, UserUpdate
 from app.core.security import get_password_hash
 import base64
@@ -111,10 +118,26 @@ def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get
     return db_user
 
 @router.delete("/{user_id}")
-def delete_user(user_id: int, db: Session = Depends(get_db)):
+def delete_user(
+    user_id: int, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    
     db_user = db.query(User).filter(User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Cascade delete all dependent records
+    db.query(Notification).filter(Notification.user_id == user_id).delete()
+    db.query(Complaint).filter(Complaint.user_id == user_id).delete()
+    db.query(Workday).filter(Workday.user_id == user_id).delete()
+    db.query(Report).filter(Report.user_id == user_id).delete()
+    db.query(Objective).filter(Objective.user_id == user_id).delete()
+    db.query(GMSAssignment).filter(GMSAssignment.user_id == user_id).delete()
+    db.query(LeaveRequest).filter((LeaveRequest.user_id == user_id) | (LeaveRequest.reviewed_by == user_id)).delete()
     
     db.delete(db_user)
     db.commit()

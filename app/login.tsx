@@ -29,6 +29,7 @@ import AnimatedBackground from './components/AnimatedBackground';
 import AuthUserTypeCard from './components/AuthUserTypeCard';
 import FloatingLabelInput from './components/FloatingLabelInput';
 import MeshGradient from './components/MeshGradient';
+import WebLogin from './components/WebLogin';
 
 const { width, height } = Dimensions.get('window');
 
@@ -115,6 +116,24 @@ export default function LoginScreen() {
     }
   };
 
+  if (Platform.OS === 'web') {
+    return (
+      <WebLogin
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        rememberMe={rememberMe}
+        setRememberMe={setRememberMe}
+        selectedType={selectedType}
+        setSelectedType={setSelectedType}
+        handleLogin={handleLogin}
+        handleGoogleSignIn={handleGoogleSignIn}
+        isLoading={isLoading}
+      />
+    );
+  }
+
   return (
     <View style={styles.container}>
       <MeshGradient />
@@ -130,18 +149,20 @@ export default function LoginScreen() {
 
               <TouchableOpacity
                 style={[styles.backButton, { backgroundColor: APP_COLORS.backButtonBg }]}
-                onPress={() => router.back()}
+                onPress={() => router.replace(Platform.OS === 'web' ? '/' : '/indexMobile')}
               >
                 <Ionicons name="arrow-back" size={24} color={APP_COLORS.textPrimary} />
               </TouchableOpacity>
- 
+
               <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
                 <View style={styles.logoBadge}>
-                  <Image
-                    source={require('../assets/images/login.png')}
-                    style={{ width: 180, height: 180, borderRadius: 32 }}
-                    resizeMode="contain"
-                  />
+                  <TouchableOpacity onPress={() => router.replace('/page_mobile')}>
+                    <Image
+                      source={require('../assets/images/login.png')}
+                      style={{ width: 180, height: 180, borderRadius: 32 }}
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
                 </View>
                 <Text style={[styles.title, { color: APP_COLORS.textPrimary }]}>Welcome Back</Text>
                 <Text style={[styles.subtitle, { color: APP_COLORS.textSecondary }]}>Choose your role and sign in to continue</Text>
@@ -262,6 +283,7 @@ export default function LoginScreen() {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

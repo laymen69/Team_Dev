@@ -9,6 +9,7 @@ export interface Complaint {
     admin_response?: string;
     user_id: number;
     requester_name: string;
+    requester_role?: string;
     gms_id?: number;
     created_at: string;
 }
@@ -36,7 +37,7 @@ export const ComplaintService = {
         }
     },
 
-    resolve: async (id: number, status: 'in_review' | 'resolved', admin_response?: string): Promise<Complaint | null> => {
+    resolve: async (id: number, status: 'in_review' | 'resolved' | 'rejected', admin_response?: string): Promise<Complaint | null> => {
         try {
             const res = await apiClient.patch(`/api/complaints/${id}/resolve`, { status, admin_response });
             return res.data;

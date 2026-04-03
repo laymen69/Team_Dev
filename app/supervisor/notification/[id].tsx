@@ -52,7 +52,7 @@ export default function SupervisorNotificationDetail() {
             if (data && data.action_link && data.action_link.includes('id=')) {
                 const reportId = data.action_link.split('id=')[1];
                 if (reportId && !isNaN(Number(reportId))) {
-                    const reportData = await ReportService.getReportById(Number(reportId));
+                    const reportData = await ReportService.getById(Number(reportId));
                     setRelatedReport(reportData);
                 }
             }

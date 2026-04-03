@@ -50,8 +50,8 @@ export default function MerchandiserDashboard() {
     if (!refreshing) setLoading(true);
     try {
       const [gmsData, objData] = await Promise.all([
-        GMSService.getAll(),
-        ObjectiveService.getAll()
+        GMSService.getAll({ skip: 0, limit: 500 }),
+        ObjectiveService.getAll({ skip: 0, limit: 200 })
       ]);
       setStores(gmsData);
       setObjectives(objData);

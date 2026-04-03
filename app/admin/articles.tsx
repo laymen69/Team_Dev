@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
-    Alert, FlatList, Modal, ScrollView, StyleSheet, Text,
+    Alert, FlatList, Modal, Platform, ScrollView, StyleSheet, Text,
     TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AdminWebLayout } from '../../components/admin/WebLayout';
 import { Badge } from '../../components/ui/Badge';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Button } from '../../components/ui/Button';
@@ -15,6 +16,7 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { ADMIN_NAV_ITEMS } from '../../constants/navigation';
 import { useTheme } from '../../context/ThemeContext';
+import { Fonts } from '../../hooks/useFonts';
 import { Article, ArticleService } from '../../services/article.service';
 
 const CATEGORIES = ['All', 'Dairy', 'Beverage', 'Snacks', 'Frozen', 'Bakery', 'Hygiene', 'Other'];
@@ -127,6 +129,164 @@ export default function AdminArticles() {
             </View>
         </Card>
     );
+
+    if (Platform.OS === 'web') {
+        return (
+            <AdminWebLayout title="Product Articles">
+                <View style={{ flexDirection: 'row', gap: 20, marginBottom: 24 }}>
+                    <View style={[s.searchBar, { flex: 1, margin: 0, backgroundColor: colors.surface, borderColor: colors.border }]}>
+                        <Ionicons name="search-outline" size={18} color={colors.textMuted} />
+                        <TextInput
+                            style={[s.searchInput, { color: colors.text }]}
+                            placeholder="Search articles…"
+                            placeholderTextColor={colors.textMuted}
+                            value={search}
+                            onChangeText={setSearch}
+                        />
+                    </View>
+                    <TouchableOpacity
+                        style={{ backgroundColor: colors.primary, paddingHorizontal: 20, borderRadius: 12, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8 }}
+                        onPress={openCreate}
+                    >
+                        <Ionicons name="add-circle-outline" size={20} color="#fff" />
+                        <Text style={{ color: '#fff', fontFamily: Fonts.headingSemiBold }}>New Article</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Category filter chips */}
+                <View style={{ marginBottom: 24 }}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                        {CATEGORIES.map(cat => (
+                            <TouchableOpacity
+                                key={cat}
+                                onPress={() => setCatFilter(cat)}
+                                style={[s.chip, { borderColor: colors.border, backgroundColor: catFilter === cat ? colors.primary : colors.surface }]}
+                            >
+                                <Text style={[s.chipText, { color: catFilter === cat ? '#fff' : colors.textSecondary }]}>{cat}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
+                {loading ? (
+                    <ListSkeleton count={10} />
+                ) : (
+                    <View>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <Text style={{ fontSize: 18, fontFamily: Fonts.headingSemiBold, color: colors.text }}>Articles List</Text>
+                            <TouchableOpacity onPress={load}>
+                                <Text style={{ color: colors.primary, fontFamily: Fonts.headingSemiBold }}>Refresh List</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
+                            {filtered.length === 0 ? (
+                                <View style={[s.empty, { width: '100%' }]}>
+                                    <Ionicons name="cube-outline" size={64} color={colors.textMuted} />
+                                    <Text style={{ color: colors.textSecondary, marginTop: 12, ...DesignTokens.typography.body }}>
+                                        No articles found
+                                    </Text>
+                                    <Button title="Add First Article" onPress={openCreate} style={{ marginTop: 16, width: 200 }} />
+                                </View>
+                            ) : (
+                                filtered.map((item: Article) => (
+                                    <View key={item.id} style={{ width: '32%' }}>
+                                        <Card style={s.card}>
+                                            <View style={s.cardRow}>
+                                                <View style={[s.catDot, { backgroundColor: colors.primary + '20' }]}>
+                                                    <Ionicons name="cube-outline" size={20} color={colors.primary} />
+                                                </View>
+                                                <View style={s.cardInfo}>
+                                                    <Text style={[s.artName, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
+                                                    <Text style={[s.artSub, { color: colors.textSecondary }]}>
+                                                        {[item.brand, item.reference, item.unit].filter(Boolean).join(' · ')}
+                                                    </Text>
+                                                </View>
+                                                <Badge label={item.category || 'N/A'} variant="neutral" size="sm" />
+                                            </View>
+                                            {item.description ? (
+                                                <Text style={[s.desc, { color: colors.textSecondary }]} numberOfLines={2}>{item.description}</Text>
+                                            ) : null}
+                                            <View style={s.actions}>
+                                                <Button title="Edit" variant="ghost" size="sm" icon="create-outline" onPress={() => openEdit(item)} style={s.btn} />
+                                                <Button title="Delete" variant="ghost" size="sm" icon="trash-outline" onPress={() => handleDelete(item)} style={[s.btn, { borderColor: colors.danger + '40' }]} />
+                                            </View>
+                                        </Card>
+                                    </View>
+                                ))
+                            )}
+                        </View>
+                    </View>
+                )}
+
+                {/* Create / Edit Modal (Dialog version for web) */}
+                <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }}>
+                        <View style={[s.modal, { backgroundColor: colors.background, width: '100%', maxWidth: 600, height: 'auto', maxHeight: '90%', borderRadius: 24, overflow: 'hidden' }]}>
+                            <View style={[s.modalHeader, { borderBottomColor: colors.border }]}>
+                                <Text style={[s.modalTitle, { color: colors.text }]}>{editing ? 'Edit Article' : 'New Article'}</Text>
+                                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                    <Ionicons name="close" size={24} color={colors.text} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView contentContainerStyle={s.modalBody}>
+                                {([
+                                    { key: 'name', label: 'Article Name *', placeholder: 'e.g. Danone Yogurt 150g' },
+                                    { key: 'reference', label: 'Reference / SKU', placeholder: 'e.g. DAN-YOG-150' },
+                                    { key: 'brand', label: 'Brand', placeholder: 'e.g. Danone' },
+                                    { key: 'unit', label: 'Unit', placeholder: 'piece / kg / litre' },
+                                    { key: 'description', label: 'Description', placeholder: 'Optional notes…' },
+                                ] as any[]).map(field => (
+                                    <View key={field.key} style={s.fieldGroup}>
+                                        <Text style={[s.label, { color: colors.textSecondary }]}>{field.label}</Text>
+                                        <View style={[s.inputWrap, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                                            <TextInput
+                                                style={[s.input, { color: colors.text }]}
+                                                placeholder={field.placeholder}
+                                                placeholderTextColor={colors.textMuted}
+                                                value={(form as any)[field.key]}
+                                                onChangeText={v => setForm(f => ({ ...f, [field.key]: v }))}
+                                                multiline={field.key === 'description'}
+                                                numberOfLines={field.key === 'description' ? 3 : 1}
+                                            />
+                                        </View>
+                                    </View>
+                                ))}
+
+                                {/* Category picker */}
+                                <View style={s.fieldGroup}>
+                                    <Text style={[s.label, { color: colors.textSecondary }]}>Category</Text>
+                                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                                        {CATEGORIES.filter(c => c !== 'All').map(cat => (
+                                            <TouchableOpacity
+                                                key={cat}
+                                                onPress={() => setForm(f => ({ ...f, category: cat }))}
+                                                style={[s.chip, { width: 'auto', paddingHorizontal: 16, borderColor: colors.border, backgroundColor: form.category === cat ? colors.primary : colors.surface }]}
+                                            >
+                                                <Text style={[s.chipText, { color: form.category === cat ? '#fff' : colors.textSecondary }]}>{cat}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+
+                                <View style={{ height: 12 }} />
+
+                                <Button
+                                    title={saving ? 'Saving…' : (editing ? 'Save Changes' : 'Create Article')}
+                                    onPress={handleSave}
+                                    size="lg"
+                                    icon="checkmark-circle-outline"
+                                    style={{ marginTop: 8 }}
+                                />
+                                <View style={{ height: 12 }} />
+                            </ScrollView>
+                        </View>
+                    </View>
+                </Modal>
+            </AdminWebLayout>
+        );
+    }
 
     return (
         <SafeAreaView style={[s.container, { backgroundColor: colors.background }]}>

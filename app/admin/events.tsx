@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -9,6 +10,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AdminWebLayout } from '../../components/admin/WebLayout';
 import { Badge } from '../../components/ui/Badge';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Card, StatCard } from '../../components/ui/Card';
@@ -17,6 +19,7 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { ADMIN_NAV_ITEMS } from '../../constants/navigation';
 import { useTheme } from '../../context/ThemeContext';
+import { Fonts } from '../../hooks/useFonts';
 
 const eventsData = [
     { id: '1', title: 'Monthly Team Meeting', date: '2026-02-10', time: '09:00', location: 'Head Office', type: 'meeting', participants: 12 },
@@ -52,6 +55,114 @@ export default function EventsPage() {
     const filteredEvents = eventsData.filter(event =>
         selectedFilter === 'all' || event.type === selectedFilter
     );
+
+    if (Platform.OS === 'web') {
+        return (
+            <AdminWebLayout title="Events & Training">
+                <View style={{ flexDirection: 'row', gap: 24, marginBottom: 32 }}>
+                    <StatCard
+                        label="UPCOMING EVENTS"
+                        value={eventsData.length}
+                        icon="calendar"
+                        color={colors.primary}
+                        style={{ flex: 1, height: 120 }}
+                    />
+                    <StatCard
+                        label="SCHEDULED THIS WEEK"
+                        value="2"
+                        icon="time"
+                        color={colors.success}
+                        style={{ flex: 1, height: 120 }}
+                    />
+                    <Card style={{ flex: 2, height: 120, justifyContent: 'center', padding: 24, borderRadius: 20 }}>
+                        <Text style={{ fontSize: 13, color: colors.textSecondary, fontWeight: '700', letterSpacing: 1 }}>NEXT EVENT</Text>
+                        <Text style={{ fontSize: 20, color: colors.text, marginTop: 4, fontFamily: Fonts.headingSemiBold }}>Monthly Team Meeting • Feb 10, 09:00</Text>
+                    </Card>
+                </View>
+
+                <View style={{ marginBottom: 32, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 16, padding: 4, alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.border }}>
+                        {filters.map(filter => (
+                            <TouchableOpacity
+                                key={filter.id}
+                                onPress={() => setSelectedFilter(filter.id)}
+                                style={{
+                                    paddingHorizontal: 24,
+                                    paddingVertical: 10,
+                                    borderRadius: 12,
+                                    backgroundColor: selectedFilter === filter.id ? colors.primary : 'transparent',
+                                }}
+                            >
+                                <Text style={{
+                                    color: selectedFilter === filter.id ? '#fff' : colors.textSecondary,
+                                    fontWeight: '700',
+                                    fontSize: 14
+                                }}>
+                                    {filter.label}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <TouchableOpacity
+                        style={{ backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 }}
+                    >
+                        <Ionicons name="add" size={20} color="#fff" />
+                        <Text style={{ color: '#fff', fontWeight: '700' }}>Schedule Event</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <View>
+                    <Text style={{ fontSize: 20, fontFamily: Fonts.headingSemiBold, color: colors.text, marginBottom: 20 }}>Staff Events</Text>
+
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
+                        {filteredEvents.map(event => {
+                            const config = getTypeConfig(event.type);
+                            return (
+                                <Card key={event.id} style={{ width: '32%', padding: 24, borderRadius: 24 }}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                                        <View style={[styles.eventIcon, { backgroundColor: config.color + '15', width: 56, height: 56, borderRadius: 16 }]}>
+                                            <Ionicons name={config.icon as any} size={28} color={config.color} />
+                                        </View>
+                                        <Badge label={config.label} variant={config.variant === 'secondary' ? 'primary' : config.variant} size="md" />
+                                    </View>
+
+                                    <Text style={{ fontSize: 18, fontFamily: Fonts.headingSemiBold, color: colors.text }} numberOfLines={1}>{event.title}</Text>
+
+                                    <View style={{ gap: 12, marginTop: 20 }}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                            <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+                                                <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                                            </View>
+                                            <Text style={{ fontSize: 14, color: colors.text }}>{event.date}</Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                            <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+                                                <Ionicons name="time-outline" size={16} color={colors.primary} />
+                                            </View>
+                                            <Text style={{ fontSize: 14, color: colors.text }}>{event.time}</Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                            <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+                                                <Ionicons name="location-outline" size={16} color={colors.primary} />
+                                            </View>
+                                            <Text style={{ fontSize: 14, color: colors.text }} numberOfLines={1}>{event.location}</Text>
+                                        </View>
+                                    </View>
+
+                                    <TouchableOpacity
+                                        style={{ marginTop: 24, backgroundColor: colors.surfaceSecondary, paddingVertical: 12, borderRadius: 12, alignItems: 'center' }}
+                                    >
+                                        <Text style={{ fontWeight: '600', color: colors.primary }}>Manage Participants ({event.participants})</Text>
+                                    </TouchableOpacity>
+                                </Card>
+                            );
+                        })}
+                    </View>
+                </View>
+            </AdminWebLayout>
+        );
+    }
 
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>

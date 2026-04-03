@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
     ActivityIndicator,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -10,6 +11,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AdminWebLayout } from '../../components/admin/WebLayout';
 import { Badge } from '../../components/ui/Badge';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Card, StatCard } from '../../components/ui/Card';
@@ -18,6 +20,7 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { ADMIN_NAV_ITEMS } from '../../constants/navigation';
 import { useTheme } from '../../context/ThemeContext';
+import { Fonts } from '../../hooks/useFonts';
 import { DocumentService } from '../../services/document.service';
 
 const documentsData = [
@@ -66,6 +69,112 @@ export default function DocumentsPage() {
             default: return 'neutral';
         }
     };
+
+    if (Platform.OS === 'web') {
+        return (
+            <AdminWebLayout title="Document Management">
+                <View style={{ flexDirection: 'row', gap: 24, marginBottom: 32 }}>
+                    <StatCard
+                        label="TOTAL FILES"
+                        value={documentsData.length}
+                        icon="folder"
+                        color={colors.primary}
+                        style={{ flex: 1, height: 120 }}
+                    />
+                    <StatCard
+                        label="STORAGE USED"
+                        value="12.4 MB"
+                        icon="cloud-done"
+                        color={colors.success}
+                        style={{ flex: 1, height: 120 }}
+                    />
+                    <Card style={{ flex: 2, height: 120, justifyContent: 'center', padding: 24, borderRadius: 20 }}>
+                        <Text style={{ fontSize: 13, color: colors.textSecondary, fontWeight: '700', letterSpacing: 1 }}>QUICK ACCESS</Text>
+                        <Text style={{ fontSize: 20, color: colors.text, marginTop: 4, fontFamily: Fonts.headingSemiBold }}>Most Recent: Annual Report</Text>
+                    </Card>
+                </View>
+
+                <View style={{ marginBottom: 32, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 16, padding: 4, alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.border }}>
+                        {categories.map(category => (
+                            <TouchableOpacity
+                                key={category}
+                                onPress={() => setSelectedCategory(category)}
+                                style={{
+                                    paddingHorizontal: 24,
+                                    paddingVertical: 10,
+                                    borderRadius: 12,
+                                    backgroundColor: selectedCategory === category ? colors.primary : 'transparent',
+                                }}
+                            >
+                                <Text style={{
+                                    color: selectedCategory === category ? '#fff' : colors.textSecondary,
+                                    fontWeight: '700',
+                                    fontSize: 14
+                                }}>
+                                    {category}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <TouchableOpacity
+                        style={{ backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 }}
+                    >
+                        <Ionicons name="cloud-upload" size={20} color="#fff" />
+                        <Text style={{ color: '#fff', fontWeight: '700' }}>Upload New File</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <View>
+                    <Text style={{ fontSize: 20, fontFamily: Fonts.headingSemiBold, color: colors.text, marginBottom: 20 }}>Available Documents</Text>
+
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
+                        {filteredDocs.map(doc => {
+                            const fileConfig = getFileIcon(doc.type);
+                            return (
+                                <Card key={doc.id} style={{ width: '32%', padding: 20, borderRadius: 20 }}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                                        <View style={[styles.docIcon, { backgroundColor: fileConfig.color + '15', width: 56, height: 56, borderRadius: 16 }]}>
+                                            <Ionicons name={fileConfig.icon as any} size={28} color={fileConfig.color} />
+                                        </View>
+                                        <Badge label={doc.category} variant={getCategoryVariant(doc.category)} size="md" />
+                                    </View>
+
+                                    <Text style={{ fontSize: 17, fontFamily: Fonts.headingSemiBold, color: colors.text }} numberOfLines={1}>{doc.name}</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                                        <Text style={{ fontSize: 13, color: colors.textMuted }}>{doc.size}</Text>
+                                        <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: colors.textMuted }} />
+                                        <Text style={{ fontSize: 13, color: colors.textMuted }}>{doc.date}</Text>
+                                    </View>
+
+                                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+                                        <TouchableOpacity
+                                            style={{ flex: 1, backgroundColor: colors.background, paddingVertical: 10, borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: colors.border }}
+                                            onPress={() => window.open(doc.url, '_blank')}
+                                        >
+                                            <Text style={{ fontWeight: '600', color: colors.text }}>View</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={{ flex: 1, backgroundColor: colors.primary + '15', paddingVertical: 10, borderRadius: 10, alignItems: 'center' }}
+                                            onPress={() => handleDownload(doc)}
+                                            disabled={downloadingId === doc.id}
+                                        >
+                                            {downloadingId === doc.id ? (
+                                                <ActivityIndicator size="small" color={colors.primary} />
+                                            ) : (
+                                                <Text style={{ fontWeight: '600', color: colors.primary }}>Download</Text>
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
+                                </Card>
+                            );
+                        })}
+                    </View>
+                </View>
+            </AdminWebLayout>
+        );
+    }
 
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>

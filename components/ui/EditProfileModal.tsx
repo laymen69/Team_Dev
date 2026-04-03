@@ -222,7 +222,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                 <View style={[styles.inputGroup, { flex: 1 }]}>
                                     <Text style={[styles.label, { color: colors.textSecondary }]}>FIRST NAME <Text style={{ color: colors.primary }}>*</Text></Text>
                                     <TextInput
-                                        style={[styles.input, { color: colors.text, borderColor: colors.border, fontFamily: Fonts.body }]}
+                                        style={[styles.input, { color: Platform.OS === 'web' ? '#000' : colors.text, borderColor: colors.border, fontFamily: Fonts.body }]}
                                         value={firstName}
                                         onChangeText={setFirstName}
                                         placeholder="First Name"
@@ -233,7 +233,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                 <View style={[styles.inputGroup, { flex: 1 }]}>
                                     <Text style={[styles.label, { color: colors.textSecondary }]}>LAST NAME <Text style={{ color: colors.primary }}>*</Text></Text>
                                     <TextInput
-                                        style={[styles.input, { color: colors.text, borderColor: colors.border, fontFamily: Fonts.body }]}
+                                        style={[styles.input, { color: Platform.OS === 'web' ? '#000' : colors.text, borderColor: colors.border, fontFamily: Fonts.body }]}
                                         value={lastName}
                                         onChangeText={setLastName}
                                         placeholder="Last Name"
@@ -246,7 +246,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                 <View style={styles.inputGroup}>
                                     <Text style={[styles.label, { color: colors.textSecondary }]}>TITLE / ZONE</Text>
                                     <TextInput
-                                        style={[styles.input, { color: colors.text, borderColor: colors.border, fontFamily: Fonts.body }]}
+                                        style={[styles.input, { color: Platform.OS === 'web' ? '#000' : colors.text, borderColor: colors.border, fontFamily: Fonts.body }]}
                                         value={profileZone}
                                         onChangeText={setProfileZone}
                                         placeholder="e.g. Design Engineer"
@@ -258,7 +258,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                             <View style={styles.inputGroup}>
                                 <Text style={[styles.label, { color: colors.textSecondary }]}>PHONE NUMBER</Text>
                                 <TextInput
-                                    style={[styles.input, { color: colors.text, borderColor: colors.border, fontFamily: Fonts.body }]}
+                                    style={[styles.input, { color: Platform.OS === 'web' ? '#000' : colors.text, borderColor: colors.border, fontFamily: Fonts.body }]}
                                     value={phone}
                                     onChangeText={setPhone}
                                     keyboardType="phone-pad"

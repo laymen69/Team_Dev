@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import {
     Animated,
-    Dimensions,
     Easing,
     Image,
     Platform,
@@ -10,76 +9,111 @@ import {
     View,
 } from 'react-native';
 import { Fonts } from '../../hooks/useFonts';
+const MARQUES_IMAGE = require('../../assets/images/Marques_Transparent.png');
 
-const { width } = Dimensions.get('window');
+// Base image dimensions (1536 x 1024)
+const IMG_WIDTH = 1536;
+const IMG_HEIGHT = 1024;
 
-const TUNISIA_IMAGES = [
-    require('../../assets/images/tunisia/boisson-gazeuse.png'),
-    require('../../assets/images/tunisia/brownies.jpg'),
-    require('../../assets/images/tunisia/eau-minerale.png'),
-    require('../../assets/images/tunisia/tomate.png'),
-    require('../../assets/images/tunisia/yaourt.png'),
-    require('../../assets/images/tunisia/lait-1-2-ecreme.png'),
-    require('../../assets/images/tunisia/lben.jpg'),
-    require('../../assets/images/tunisia/pate-a-tartiner.jpg'),
-    require('../../assets/images/tunisia/fromage-fondu.png'),
-    require('../../assets/images/tunisia/harissa.jpg'),
+/**
+ * Manual coordinates for each logo on the Marques.png sheet.
+ * This ensures perfect centering even if the original grid is irregular.
+ */
+const LOGO_COORDS = [
+    // Row 1
+    { x: 90, y: 130, w: 319, h: 210 }, // Delice (Recalibrated for perfect centering)
+    { x: 465, y: 165, w: 280, h: 165 }, // Vitalait
+    { x: 790, y: 145, w: 250, h: 200 }, // Boga
+    { x: 1080, y: 155, w: 285, h: 175 }, // Apla
+    // Row 2
+    { x: 125, y: 405, w: 290, h: 170 }, // Samba
+    { x: 475, y: 395, w: 285, h: 185 }, // Randa
+    { x: 795, y: 385, w: 250, h: 200 }, // Triki
+    { x: 1075, y: 400, w: 300, h: 185 }, // Diari
+    // Row 3
+    { x: 135, y: 705, w: 275, h: 210 }, // Saida
+    { x: 455, y: 730, w: 310, h: 145 }, // Biscri
+    { x: 785, y: 720, w: 290, h: 155 }, // Jbeil
+    { x: 1090, y: 715, w: 285, h: 175 }, // Olio
 ];
 
-const LOGO_WIDTH = Platform.select({ web: 120, default: 100 });
-const LOGO_MARGIN = 30;
-const TOTAL_LOGO_WIDTH = LOGO_WIDTH + LOGO_MARGIN;
-const TOTAL_WIDTH = TUNISIA_IMAGES.length * TOTAL_LOGO_WIDTH;
+// Display settings
+const DISPLAY_WIDTH = Platform.select({ web: 140, default: 120 }) || 120;
+const LOGO_MARGIN = 40;
+const SINGLE_SET_WIDTH = LOGO_COORDS.length * (DISPLAY_WIDTH + LOGO_MARGIN);
+const DURATION = (SINGLE_SET_WIDTH / 35) * 1000; // ~35px/s constant speed
 
-export default function MarqueeLogos() {
-    const isWeb = Platform.OS === 'web';
-    const scrollX = useRef(new Animated.Value(0)).current;
+const SlicedLogo = ({ index }: { index: number }) => {
+    const coord = LOGO_COORDS[index];
 
-    useEffect(() => {
-        const animate = () => {
-            scrollX.setValue(0);
-            Animated.timing(scrollX, {
-                toValue: -TOTAL_WIDTH,
-                duration: isWeb ? 15000 : 12000,
-                easing: Easing.linear,
-                useNativeDriver: true,
-            }).start(() => animate());
-        };
+    // Scale the entire source image so 'coord.w' becomes 'DISPLAY_WIDTH'
+    const scale = DISPLAY_WIDTH / coord.w;
+    const targetHeight = coord.h * scale;
 
-        animate();
-    }, [scrollX, isWeb]);
-
-    const renderLogos = () => (
-        <View style={styles.logoRow}>
-            {TUNISIA_IMAGES.map((image, index) => (
-                <View key={index} style={styles.logoItem}>
-                    <Image
-                        source={image}
-                        style={styles.logoImage}
-                        resizeMode="contain"
-                    />
-                </View>
-            ))}
+    return (
+        <View style={styles.logoItem}>
+            <View style={[styles.logoSlot, { width: DISPLAY_WIDTH, height: targetHeight }]}>
+                <Image
+                    source={MARQUES_IMAGE}
+                    style={{
+                        width: IMG_WIDTH * scale,
+                        height: IMG_HEIGHT * scale,
+                        position: 'absolute',
+                        left: -coord.x * scale,
+                        top: -coord.y * scale,
+                    }}
+                    resizeMode="contain"
+                />
+            </View>
         </View>
     );
+};
+
+export default function MarqueeLogos() {
+    const scrollX = useRef(new Animated.Value(0)).current;
+    const animRef = useRef<Animated.CompositeAnimation | null>(null);
+
+    useEffect(() => {
+        const startAnimation = () => {
+            scrollX.setValue(0);
+            animRef.current = Animated.timing(scrollX, {
+                toValue: -SINGLE_SET_WIDTH,
+                duration: DURATION,
+                easing: Easing.linear,
+                useNativeDriver: true,
+            });
+            animRef.current.start(({ finished }) => {
+                if (finished) startAnimation();
+            });
+        };
+
+        startAnimation();
+        return () => { animRef.current?.stop(); };
+    }, []);
+
+    const renderLogos = (prefix: string) =>
+        LOGO_COORDS.map((_, index) => (
+            <SlicedLogo key={`${prefix}-${index}`} index={index} />
+        ));
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <View style={styles.line} />
-                <Text style={styles.headerText}>EXCELLENCE TUNISIENNE</Text>
+                <Text style={styles.headerText}>NOS PARTENAIRES STRATÉGIQUES</Text>
                 <View style={styles.line} />
             </View>
 
             <View style={styles.marqueeContainer}>
+                <View style={styles.fadeLeft} />
+                <View style={styles.fadeRight} />
+
                 <Animated.View
-                    style={[
-                        styles.animatedRow,
-                        { transform: [{ translateX: scrollX }] },
-                    ]}
+                    style={[styles.animatedRow, { transform: [{ translateX: scrollX }] }]}
                 >
-                    {renderLogos()}
-                    {renderLogos()}
+                    {renderLogos('a')}
+                    {renderLogos('b')}
+                    {renderLogos('c')}
                 </Animated.View>
             </View>
         </View>
@@ -88,7 +122,7 @@ export default function MarqueeLogos() {
 
 const styles = StyleSheet.create({
     container: {
-        marginVertical: 25,
+        marginVertical: 15,
         width: '100%',
     },
     header: {
@@ -101,12 +135,12 @@ const styles = StyleSheet.create({
     line: {
         flex: 1,
         height: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: 'rgba(0, 0, 0, 0.08)',
     },
     headerText: {
         fontSize: 10,
         fontFamily: Fonts.heading,
-        color: '#ffffff',
+        color: '#64748b',
         letterSpacing: 6,
         marginHorizontal: 16,
         opacity: 0.8,
@@ -115,27 +149,48 @@ const styles = StyleSheet.create({
     marqueeContainer: {
         overflow: 'hidden',
         width: '100%',
-        height: 50,
-        alignItems: 'center',
+        height: 95,
+        position: 'relative',
+    },
+    fadeLeft: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 100,
+        zIndex: 10,
+        ...Platform.select({
+            web: { background: 'linear-gradient(to right, rgba(255,255,255,0.95), transparent)' } as any,
+            default: {},
+        }),
+    },
+    fadeRight: {
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        bottom: 0,
+        width: 100,
+        zIndex: 10,
+        ...Platform.select({
+            web: { background: 'linear-gradient(to left, rgba(255,255,255,0.95), transparent)' } as any,
+            default: {},
+        }),
     },
     animatedRow: {
         flexDirection: 'row',
         alignItems: 'center',
-    },
-    logoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        width: SINGLE_SET_WIDTH * 3,
     },
     logoItem: {
-        width: LOGO_WIDTH,
-        height: 44,
+        width: DISPLAY_WIDTH,
+        height: 85,
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: 8,
+        marginHorizontal: LOGO_MARGIN / 2,
     },
-    logoImage: {
-        width: LOGO_WIDTH - 20,
-        height: 38,
-        opacity: 0.9,
-    },
+    logoSlot: {
+        overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
+    }
 });

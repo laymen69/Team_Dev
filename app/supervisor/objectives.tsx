@@ -35,8 +35,9 @@ export default function SupervisorObjectives() {
     // Split objectives into Supervisor's own vs Team's
     // Assume if objective.user_id matches current user, it's theirs. 
     // Otherwise, it belongs to one of their team members.
-    const myObjectives = objectives.filter(o => o.user_id === user?.id);
-    const teamObjectives = objectives.filter(o => o.user_id !== user?.id);
+    const currentUserId = user?.id ? Number(user.id) : -1;
+    const myObjectives = objectives.filter(o => o.user_id === currentUserId);
+    const teamObjectives = objectives.filter(o => o.user_id !== currentUserId);
 
     const renderItem = ({ item }: { item: Objective }) => {
         const progressPct = item.target > 0 ? Math.min(item.current / item.target, 1) : 0;

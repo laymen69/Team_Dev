@@ -1,9 +1,11 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   Alert,
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -12,6 +14,8 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AdminWebLayout } from '../../components/admin/WebLayout';
+import MeshGradient from '../components/MeshGradient';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Card } from '../../components/ui/Card';
 import { EditProfileModal } from '../../components/ui/EditProfileModal';
@@ -33,13 +37,17 @@ const ProfileHeader = ({ user, colors, onEdit }: { user: any, colors: any, onEdi
 
   return (
     <View style={styles.premiumHeader}>
-      <View style={[styles.headerBg, { backgroundColor: colors.primary }]}>
-        <View style={[styles.circle, { top: -20, right: -20, backgroundColor: 'rgba(255,255,255,0.1)' }]} />
-        <View style={[styles.circle, { bottom: -40, left: -20, backgroundColor: 'rgba(255,255,255,0.05)', width: 120, height: 120 }]} />
+      <View style={styles.headerBackgroundContainer}>
+        <MeshGradient />
+        <LinearGradient
+            colors={['transparent', colors.background]}
+            style={StyleSheet.absoluteFill}
+        />
       </View>
 
       <View style={styles.headerContent}>
         <View style={styles.avatarWrapper}>
+          <View style={[styles.avatarGlow, { backgroundColor: colors.primary + '40' }]} />
           <View style={[styles.avatarOutline, { borderColor: colors.background }]}>
             <View style={[styles.premiumAvatarContainer, { backgroundColor: user?.profileImage ? 'transparent' : colors.primary }]}>
               {user?.profileImage ? (
@@ -50,26 +58,36 @@ const ProfileHeader = ({ user, colors, onEdit }: { user: any, colors: any, onEdi
             </View>
           </View>
           <TouchableOpacity onPress={onEdit} style={[styles.premiumEditBtn, { backgroundColor: colors.primary, borderColor: colors.background }]}>
-            <Feather name="camera" size={12} color="#fff" />
+            <Feather name="camera" size={14} color="#fff" />
           </TouchableOpacity>
         </View>
 
         <View style={styles.profileTextInfo}>
           <Text style={[styles.premiumName, { color: colors.text }]}>{fullName}</Text>
-          <View style={[styles.roleBadge, { backgroundColor: colors.primary + '15' }]}>
+          <View style={[styles.roleBadge, { backgroundColor: colors.primary + '20' }]}>
             <Text style={[styles.roleBadgeText, { color: colors.primary }]}>{roleDisplay}</Text>
           </View>
         </View>
 
-        <View style={[styles.contactInfoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.glassCard, { backgroundColor: colors.surface + '80', borderColor: colors.border }]}>
           <View style={styles.contactItem}>
-            <Feather name="mail" size={14} color={colors.primary} />
-            <Text style={[styles.contactItemText, { color: colors.text }]}>{user?.email || '—'}</Text>
+            <View style={[styles.contactIcon, { backgroundColor: colors.primary + '20' }]}>
+               <Feather name="mail" size={14} color={colors.primary} />
+            </View>
+            <View>
+                <Text style={[styles.contactLabel, { color: colors.textMuted }]}>Email</Text>
+                <Text style={[styles.contactItemText, { color: colors.text }]}>{user?.email || '—'}</Text>
+            </View>
           </View>
           {user?.phone && (
-            <View style={[styles.contactItem, { marginTop: 12 }]}>
-              <Feather name="phone" size={14} color={colors.primary} />
-              <Text style={[styles.contactItemText, { color: colors.text }]}>{user.phone}</Text>
+            <View style={[styles.contactItem, { marginTop: 16 }]}>
+              <View style={[styles.contactIcon, { backgroundColor: colors.primary + '20' }]}>
+                <Feather name="phone" size={14} color={colors.primary} />
+              </View>
+              <View>
+                <Text style={[styles.contactLabel, { color: colors.textMuted }]}>Phone</Text>
+                <Text style={[styles.contactItemText, { color: colors.text }]}>{user.phone}</Text>
+              </View>
             </View>
           )}
         </View>
@@ -79,22 +97,24 @@ const ProfileHeader = ({ user, colors, onEdit }: { user: any, colors: any, onEdi
 };
 
 const StatCard = ({ icon, label, value, color, colors }: any) => (
-  <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-    <View style={styles.statHeader}>
-      <Feather name={icon} size={16} color={color} />
-      <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{label}</Text>
+  <View style={[styles.statCardGlass, { backgroundColor: colors.surface + '60', borderColor: colors.border }]}>
+    <View style={[styles.statIconBox, { backgroundColor: color + '20' }]}>
+      <Feather name={icon} size={18} color={color} />
     </View>
-    <Text style={[styles.statValue, { color: color }]}>{value}</Text>
+    <View style={{ flex: 1 }}>
+        <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
+        <Text style={[styles.statLabel, { color: colors.textMuted }]}>{label}</Text>
+    </View>
   </View>
 );
 
 const MenuItem = ({ item, isLast, colors, router }: any) => (
   <TouchableOpacity
     onPress={() => router.push(item.path)}
-    style={[styles.menuItem, !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border }]}
+    style={[styles.menuItemGlass, !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border }]}
   >
-    <View style={[styles.menuIconContainer, { backgroundColor: colors.background }]}>
-      <Feather name={item.icon} size={18} color={colors.text} />
+    <View style={[styles.menuIconContainerGlass, { backgroundColor: colors.primary + '15' }]}>
+      <Feather name={item.icon} size={18} color={colors.primary} />
     </View>
     <Text style={[styles.menuLabel, { color: colors.text }]}>{item.label}</Text>
     {item.badge && (
@@ -102,7 +122,7 @@ const MenuItem = ({ item, isLast, colors, router }: any) => (
         <Text style={styles.badgeText}>{item.badge}</Text>
       </View>
     )}
-    <Feather name="chevron-right" size={18} color={colors.textSecondary} />
+    <Feather name="chevron-right" size={18} color={colors.textMuted} />
   </TouchableOpacity>
 );
 
@@ -172,27 +192,174 @@ export default function Profile() {
     }
   };
 
+  if (Platform.OS === 'web') {
+    const initials = profileUser ? `${profileUser.firstName?.[0] || ''}${profileUser.lastName?.[0] || ''}`.toUpperCase() : 'AD';
+    const fullName = profileUser ? `${profileUser.firstName} ${profileUser.lastName}` : 'Administrator';
+
+    return (
+      <AdminWebLayout title="Admin Profile">
+        <View style={{ flexDirection: 'row', gap: 32, alignItems: 'flex-start' }}>
+          {/* Left Column: Profile Card */}
+          <View style={{ width: 350, gap: 24 }}>
+            <Card style={{ padding: 32, alignItems: 'center', borderRadius: 24, backgroundColor: colors.surface, borderColor: colors.border }}>
+              <View style={[styles.avatarOutline, { borderColor: colors.background, padding: 6 }]}>
+                <View style={[styles.premiumAvatarContainer, { width: 120, height: 120, borderRadius: 60, backgroundColor: profileUser?.profileImage ? 'transparent' : colors.primary }]}>
+                  {profileUser?.profileImage ? (
+                    <Image source={{ uri: getFullImageUrl(profileUser.profileImage) || '' }} style={styles.premiumAvatar} />
+                  ) : (
+                    <Text style={[styles.avatarText, { fontSize: 40 }]}>{initials}</Text>
+                  )}
+                </View>
+              </View>
+
+              <Text style={{ fontSize: 24, fontFamily: Fonts.headingSemiBold, color: colors.text, marginTop: 20 }}>{fullName}</Text>
+              <View style={[styles.roleBadge, { backgroundColor: colors.primary + '15', marginTop: 8 }]}>
+                <Text style={[styles.roleBadgeText, { color: colors.primary, fontSize: 13 }]}>{profileUser?.role?.toUpperCase() || 'ADMIN'}</Text>
+              </View>
+
+              <TouchableOpacity
+                style={{ backgroundColor: colors.primary, width: '100%', paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 32 }}
+                onPress={() => setIsEditModalVisible(true)}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700' }}>Edit Profile Information</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{ width: '100%', paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 12, borderWidth: 1, borderColor: colors.danger + '40' }}
+                onPress={signOut}
+              >
+                <Text style={{ color: colors.danger, fontWeight: '700' }}>Sign Out Account</Text>
+              </TouchableOpacity>
+            </Card>
+
+            <Card style={{ padding: 24, borderRadius: 24, backgroundColor: colors.surface, borderColor: colors.border }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 16 }}>Contact Details</Text>
+              <View style={{ gap: 16 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+                    <Feather name="mail" size={16} color={colors.primary} />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 12, color: colors.textMuted }}>EMAIL ADDRESS</Text>
+                    <Text style={{ fontSize: 14, color: colors.text, fontWeight: '600' }}>{profileUser?.email || '—'}</Text>
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+                    <Feather name="phone" size={16} color={colors.primary} />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 12, color: colors.textMuted }}>PHONE NUMBER</Text>
+                    <Text style={{ fontSize: 14, color: colors.text, fontWeight: '600' }}>{profileUser?.phone || '—'}</Text>
+                  </View>
+                </View>
+              </View>
+            </Card>
+          </View>
+          {/* Right Column: Settings & Preferences */}
+          <View style={{ flex: 1, gap: 24 }}>
+            <View style={{ flexDirection: 'row', gap: 20 }}>
+              <Card style={{ flex: 1, padding: 24, borderRadius: 24, backgroundColor: colors.surface, borderColor: colors.border }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                  <Ionicons name="sunny-outline" size={24} color="#fbbf24" />
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>Interface Theme</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.background, padding: 16, borderRadius: 16 }}>
+                  <Text style={{ color: colors.textSecondary }}>Dark Mode Preference</Text>
+                  <Switch
+                    value={isDark}
+                    onValueChange={toggleTheme}
+                    trackColor={{ false: "#cbd5e1", true: colors.primary }}
+                  />
+                </View>
+              </Card>
+
+              <Card style={{ flex: 1, padding: 24, borderRadius: 24, backgroundColor: colors.surface, borderColor: colors.border }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                  <Ionicons name="notifications-outline" size={24} color={colors.primary} />
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>Notifications</Text>
+                </View>
+                <TouchableOpacity
+                  style={{ backgroundColor: colors.background, padding: 16, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                  onPress={() => router.push('/admin/notifications')}
+                >
+                  <Text style={{ color: colors.textSecondary }}>Check unread alerts</Text>
+                  {unreadCount > 0 && (
+                    <View style={{ backgroundColor: colors.danger, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
+                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{unreadCount} New</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </Card>
+            </View>
+
+            <Card style={{ padding: 24, borderRadius: 24, backgroundColor: colors.surface, borderColor: colors.border }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 20 }}>Quick Links & Support</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
+                {[
+                  { icon: 'calendar', label: 'My Objectives', path: '/admin/planning' },
+                  { icon: 'file-text', label: 'Documents', path: '/admin/documents' },
+                  { icon: 'clock', label: 'Leave Requests', path: '/admin/leave' },
+                  { icon: 'shield', label: 'Privacy & Security', path: '/admin/privacy' },
+                  { icon: 'help-circle', label: 'Help & Support', path: '/admin/help' },
+                ].map(item => (
+                  <TouchableOpacity
+                    key={item.label}
+                    style={{ width: '31%', padding: 20, backgroundColor: colors.background, borderRadius: 20, alignItems: 'center', gap: 12 }}
+                    onPress={() => router.push(item.path as any)}
+                  >
+                    <Feather name={item.icon as any} size={24} color={colors.primary} />
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }}>{item.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </Card>
+            <View style={{ marginTop: 'auto', alignItems: 'center', paddingBottom: 20 }}>
+              <Text style={{ color: colors.textMuted, fontSize: 13 }}>FieldForce Enterprise Admin Control Panel</Text>
+              <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 4 }}>Version 1.2.0 • Build 2024.1</Text>
+            </View>
+          </View>
+        </View>
+
+        <EditProfileModal
+          isVisible={isEditModalVisible}
+          onClose={() => setIsEditModalVisible(false)}
+          onSave={handleUpdateProfile}
+          userData={{
+            firstName: profileUser?.firstName || user?.firstName || '',
+            lastName: profileUser?.lastName || user?.lastName || '',
+            email: profileUser?.email || user?.email || '',
+            role: profileUser?.role || user?.role || 'admin',
+            phone: profileUser?.phone || user?.phone || '',
+            profileZone: profileUser?.profileZone || user?.profileZone || '',
+            profileImage: profileUser?.profileImage || user?.profileImage || null,
+          }}
+          isSubmitting={isSubmitting}
+        />
+      </AdminWebLayout>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <Header title="Profile" subtitle="Account Settings" showBack />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.section}>
+        <View style={styles.sectionHeaderWrap}>
           <ProfileHeader user={profileUser || user} colors={colors} onEdit={() => setIsEditModalVisible(true)} />
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>OVERVIEW</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>OVERVIEW</Text>
           <View style={styles.statsRow}>
             <StatCard icon="users" label="Users" value="124" color={colors.primary} colors={colors} />
             <StatCard icon="shopping-cart" label="Stores" value="48" color={colors.success} colors={colors} />
-            <StatCard icon="activity" label="Uptime" value="99.9%" color={colors.secondary} colors={colors} />
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>SETTINGS</Text>
-          <Card style={styles.menuCard}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>SETTINGS</Text>
+          <View style={[styles.menuCardGlass, { backgroundColor: colors.surface + '40', borderColor: colors.border }]}>
             {menuItems.map((item, index) => (
               <MenuItem
                 key={item.label}
@@ -202,14 +369,14 @@ export default function Profile() {
                 router={router}
               />
             ))}
-          </Card>
+          </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>PREFERENCES</Text>
-          <Card style={styles.prefCard}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>PREFERENCES</Text>
+          <View style={[styles.menuCardGlass, { backgroundColor: colors.surface + '40', borderColor: colors.border }]}>
             <View style={styles.prefRow}>
-              <View style={[styles.menuIconContainer, { backgroundColor: '#fbbf2420' }]}>
+              <View style={[styles.menuIconContainerGlass, { backgroundColor: '#fbbf2420' }]}>
                 <Ionicons name={isDark ? "moon" : "sunny"} size={20} color="#fbbf24" />
               </View>
               <Text style={[styles.menuLabel, { flex: 1, color: colors.text }]}>Dark Appearance</Text>
@@ -220,16 +387,16 @@ export default function Profile() {
                 thumbColor="#fff"
               />
             </View>
-          </Card>
+          </View>
         </View>
 
-        <TouchableOpacity style={[styles.logoutBtn, { borderColor: colors.danger }]} onPress={signOut}>
+        <TouchableOpacity style={[styles.logoutBtnGlass, { borderColor: colors.danger + '40', backgroundColor: colors.danger + '10' }]} onPress={signOut}>
           <Feather name="log-out" size={20} color={colors.danger} />
           <Text style={[styles.logoutText, { color: colors.danger }]}>Sign Out</Text>
         </TouchableOpacity>
 
         <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.textSecondary }]}>FieldForce Admin v1.2.0</Text>
+          <Text style={[styles.footerText, { color: colors.textMuted }]}>FieldForce Admin v1.2.0</Text>
         </View>
       </ScrollView>
 
@@ -238,13 +405,13 @@ export default function Profile() {
         onClose={() => setIsEditModalVisible(false)}
         onSave={handleUpdateProfile}
         userData={{
-          firstName: profileUser?.firstName || user?.firstName || '',
-          lastName: profileUser?.lastName || user?.lastName || '',
-          email: profileUser?.email || user?.email || '',
-          role: profileUser?.role || user?.role || 'admin',
-          phone: profileUser?.phone || user?.phone || '',
-          profileZone: profileUser?.profileZone || user?.profileZone || '',
-          profileImage: profileUser?.profileImage || user?.profileImage || null,
+            firstName: profileUser?.firstName || user?.firstName || '',
+            lastName: profileUser?.lastName || user?.lastName || '',
+            email: profileUser?.email || user?.email || '',
+            role: profileUser?.role || user?.role || 'admin',
+            phone: profileUser?.phone || user?.phone || '',
+            profileZone: profileUser?.profileZone || user?.profileZone || '',
+            profileImage: profileUser?.profileImage || user?.profileImage || null,
         }}
         isSubmitting={isSubmitting}
       />
@@ -256,68 +423,54 @@ export default function Profile() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  scrollContent: { paddingVertical: 16, paddingBottom: 120 },
-  section: { paddingHorizontal: 16, marginBottom: 24 },
-  sectionTitle: { fontSize: 13, fontFamily: Fonts.headingSemiBold, marginBottom: 12, letterSpacing: 1 },
-  profileCard: { padding: 16, borderRadius: 16 },
-  profileHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  avatarContainer: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  avatar: { width: '100%', height: '100%' },
-  avatarText: { color: '#fff', fontSize: 24, fontFamily: Fonts.heading },
-  profileInfo: { flex: 1 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  profileName: { fontSize: 20, fontFamily: Fonts.heading },
-  profileRole: { fontSize: 14, fontFamily: Fonts.subheading, marginTop: 2 },
-  profileZone: { fontSize: 12, fontFamily: Fonts.secondary, marginTop: 4 },
-  editBtn: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-
-  // Premium Design
-  premiumHeader: { marginBottom: 32 },
-  headerBg: { height: 120, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, overflow: 'hidden' },
-  circle: { position: 'absolute', width: 80, height: 80, borderRadius: 40 },
-  headerContent: { alignItems: 'center', marginTop: -50, paddingHorizontal: 20 },
-  avatarWrapper: { position: 'relative' },
-  avatarOutline: { padding: 4, borderRadius: 54, borderWidth: 4 },
-  premiumAvatarContainer: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  scrollContent: { paddingBottom: 120 },
+  sectionHeaderWrap: { marginBottom: 32 },
+  section: { paddingHorizontal: 20, marginBottom: 24 },
+  sectionTitle: { fontSize: 13, fontFamily: Fonts.headingSemiBold, marginBottom: 16, letterSpacing: 1.5, opacity: 0.7 },
+  
+  // Header Design
+  premiumHeader: { position: 'relative', overflow: 'hidden' },
+  headerBackgroundContainer: { height: 260, position: 'absolute', top: 0, left: 0, right: 0 },
+  headerContent: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 20 },
+  avatarWrapper: { position: 'relative', zIndex: 1 },
+  avatarGlow: { position: 'absolute', width: 140, height: 140, borderRadius: 70, top: -15, left: -15, transform: [{ scale: 1.2 }], opacity: 0.5 },
+  avatarOutline: { padding: 5, borderRadius: 65, borderWidth: 3.5 },
+  premiumAvatarContainer: { width: 110, height: 110, borderRadius: 55, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   premiumAvatar: { width: '100%', height: '100%' },
-  premiumEditBtn: { position: 'absolute', bottom: 0, right: 0, width: 32, height: 32, borderRadius: 16, borderWidth: 3, justifyContent: 'center', alignItems: 'center' },
-  profileTextInfo: { alignItems: 'center', marginTop: 12, gap: 4 },
-  premiumName: { fontSize: 24, fontFamily: Fonts.heading },
-  roleBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, marginTop: 4 },
-  roleBadgeText: { fontSize: 12, fontFamily: Fonts.bodyBold, letterSpacing: 0.5 },
-  contactInfoCard: { width: '100%', marginTop: 24, padding: 20, borderRadius: 20, borderWidth: 1, gap: 4 },
-  contactItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  contactItemText: { fontSize: 15, fontFamily: Fonts.bodyMedium },
+  avatarText: { color: '#fff', fontSize: 36, fontFamily: Fonts.headingXBold },
+  premiumEditBtn: { position: 'absolute', bottom: 2, right: 2, width: 36, height: 36, borderRadius: 18, borderWidth: 3, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 5, elevation: 5 },
+  profileTextInfo: { alignItems: 'center', marginTop: 16, gap: 6, zIndex: 1 },
+  premiumName: { fontSize: 26, fontFamily: Fonts.headingXBold, letterSpacing: -0.5 },
+  roleBadge: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 14 },
+  roleBadgeText: { fontSize: 13, fontFamily: Fonts.bodyBold, letterSpacing: 1, textTransform: 'uppercase' },
+  
+  // Glassmorphism Cards
+  glassCard: { width: '100%', marginTop: 28, padding: 22, borderRadius: 24, borderWidth: 1 },
+  contactItem: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  contactIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  contactLabel: { fontSize: 11, fontFamily: Fonts.bodyBold, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 },
+  contactItemText: { fontSize: 16, fontFamily: Fonts.bodyMedium },
 
-  separator: { height: 1, marginVertical: 16 },
-  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  contactText: { fontSize: 14, fontFamily: Fonts.secondary },
-  statsRow: { flexDirection: 'row', gap: 12 },
-  statCard: { flex: 1, padding: 16, borderRadius: 16, borderWidth: 1 },
-  statHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  statLabel: { fontSize: 12, fontFamily: Fonts.secondary },
-  statValue: { fontSize: 20, fontFamily: Fonts.heading },
-  menuCard: { padding: 0, overflow: 'hidden' },
-  menuItem: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
-  menuIconContainer: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  menuLabel: { flex: 1, fontSize: 14, fontFamily: Fonts.bodyMedium },
-  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  badgeText: { color: '#fff', fontSize: 10, fontFamily: Fonts.bodyBold },
-  prefCard: { padding: 0, overflow: 'hidden' },
-  prefRow: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12 },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 16, borderWidth: 1, marginHorizontal: 16, gap: 12 },
-  logoutText: { fontSize: 18, fontFamily: Fonts.cta, letterSpacing: 1 },
-  footer: { alignItems: 'center', marginTop: 24 },
-  footerText: { fontSize: 12, fontFamily: Fonts.body },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontFamily: Fonts.headingSemiBold },
-  modalBody: { gap: 16 },
-  label: { fontSize: 11, fontFamily: Fonts.bodyBold },
-  readOnlyField: { padding: 14, borderRadius: 12 },
-  input: { padding: 14, borderWidth: 1, borderRadius: 12, fontSize: 15 },
-  saveBtn: { padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
-  saveBtnText: { color: '#fff', fontFamily: Fonts.headingSemiBold, fontSize: 16 },
-  textMuted: { opacity: 0.6 },
+  // Stats
+  statsRow: { flexDirection: 'row', gap: 16 },
+  statCardGlass: { flex: 1, padding: 20, borderRadius: 20, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 16 },
+  statIconBox: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  statValue: { fontSize: 22, fontFamily: Fonts.headingXBold },
+  statLabel: { fontSize: 12, fontFamily: Fonts.bodyMedium },
+  
+  // Menus
+  menuCardGlass: { borderRadius: 24, borderWidth: 1, overflow: 'hidden' },
+  menuItemGlass: { flexDirection: 'row', alignItems: 'center', padding: 18, gap: 16 },
+  menuIconContainerGlass: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  menuLabel: { flex: 1, fontSize: 15, fontFamily: Fonts.bodyMedium },
+  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  badgeText: { color: '#fff', fontSize: 11, fontFamily: Fonts.bodyBold },
+  
+  prefRow: { flexDirection: 'row', alignItems: 'center', padding: 18, gap: 16 },
+  logoutBtnGlass: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 18, borderRadius: 20, borderWidth: 1, marginHorizontal: 20, gap: 12, marginTop: 12 },
+  logoutText: { fontSize: 18, fontFamily: Fonts.headingSemiBold, letterSpacing: 1 },
+  
+  footer: { alignItems: 'center', marginTop: 32, paddingBottom: 40 },
+
+  footerText: { fontSize: 12, fontFamily: Fonts.body, opacity: 0.5 },
 });

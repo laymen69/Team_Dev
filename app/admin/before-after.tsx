@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/theme';
+import { AdminWebLayout } from '../../components/admin/WebLayout';
+import { getColors } from '../../constants/designSystem';
 import { useTheme } from '../../context/ThemeContext';
 import { ReportService } from '../../services/report.service';
 
@@ -11,7 +12,7 @@ export default function BeforeAfterReport() {
     const router = useRouter();
     const { id } = useLocalSearchParams();
     const { theme } = useTheme();
-    const activeColors = Colors[theme];
+    const activeColors = getColors(theme);
 
     const [report, setReport] = useState<any>(null);
     const [reports, setReports] = useState<any[]>([]);
@@ -39,7 +40,7 @@ export default function BeforeAfterReport() {
 
     const loadReport = async (reportId: number) => {
         try {
-            const data = await ReportService.getReportById(reportId);
+            const data = await ReportService.getById(reportId);
             setReport(data);
         } catch (error) {
             console.error('Failed to load report:', error);
@@ -52,16 +53,78 @@ export default function BeforeAfterReport() {
     if (loading) {
         return (
             <View style={[styles.center, { backgroundColor: activeColors.background }]}>
-                <ActivityIndicator size="large" color={activeColors.tint} />
+                <ActivityIndicator size="large" color={activeColors.primary} />
             </View>
         );
     }
 
     // Detail View
     if (id && report) {
+        if (Platform.OS === 'web') {
+            return (
+                <AdminWebLayout title="Report Details">
+                    <View style={{ backgroundColor: activeColors.surface, borderRadius: 24, padding: 40, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 20 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
+                            <View>
+                                <Text style={[styles.title, { color: activeColors.text, fontSize: 32 }]}>{report.name}</Text>
+                                <Text style={[styles.date, { color: activeColors.textSecondary, fontSize: 16 }]}>
+                                    Submitted by User #{report.user_id} on {new Date(report.created_at).toLocaleDateString()}
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                style={{ backgroundColor: activeColors.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 }}
+                                onPress={() => router.back()}
+                            >
+                                <Text style={{ color: '#fff', fontWeight: '700' }}>Back to List</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={{ gap: 32 }}>
+                            <View>
+                                <Text style={[styles.sectionTitle, { color: activeColors.text, fontSize: 18, marginBottom: 12 }]}>Notes</Text>
+                                <View style={{ backgroundColor: activeColors.background, padding: 20, borderRadius: 16, borderLeftWidth: 4, borderLeftColor: activeColors.primary }}>
+                                    <Text style={[styles.notes, { color: activeColors.textSecondary }]}>
+                                        {report.notes || "No notes provided."}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View>
+                                <Text style={[styles.sectionTitle, { color: activeColors.text, fontSize: 18, marginBottom: 20 }]}>Evidence</Text>
+                                <View style={{ flexDirection: 'row', gap: 24 }}>
+                                    <View style={{ flex: 1, gap: 12 }}>
+                                        <Text style={[styles.imageLabel, { color: activeColors.textSecondary, textAlign: 'center' }]}>BEFORE CONDITION</Text>
+                                        {report.before_image ? (
+                                            <Image source={{ uri: report.before_image }} style={[styles.image, { height: 400 }]} resizeMode="cover" />
+                                        ) : (
+                                            <View style={[styles.placeholder, { height: 400, borderColor: activeColors.border }]}>
+                                                <Ionicons name="image-outline" size={48} color={activeColors.textMuted} />
+                                                <Text style={{ color: activeColors.textSecondary, marginTop: 12 }}>No Image Available</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                    <View style={{ flex: 1, gap: 12 }}>
+                                        <Text style={[styles.imageLabel, { color: activeColors.textSecondary, textAlign: 'center' }]}>AFTER CONDITION</Text>
+                                        {report.after_image ? (
+                                            <Image source={{ uri: report.after_image }} style={[styles.image, { height: 400 }]} resizeMode="cover" />
+                                        ) : (
+                                            <View style={[styles.placeholder, { height: 400, borderColor: activeColors.border }]}>
+                                                <Ionicons name="image-outline" size={48} color={activeColors.textMuted} />
+                                                <Text style={{ color: activeColors.textSecondary, marginTop: 12 }}>No Image Available</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                </AdminWebLayout>
+            );
+        }
+
         return (
             <SafeAreaView style={[styles.safeArea, { backgroundColor: activeColors.background }]}>
-                <View style={[styles.header, { backgroundColor: activeColors.card }]}>
+                <View style={[styles.header, { backgroundColor: activeColors.surface }]}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                         <Ionicons name="arrow-back" size={24} color={activeColors.text} />
                     </TouchableOpacity>
@@ -70,7 +133,7 @@ export default function BeforeAfterReport() {
                 </View>
 
                 <ScrollView contentContainerStyle={styles.scroll}>
-                    <View style={[styles.card, { backgroundColor: activeColors.card }]}>
+                    <View style={[styles.card, { backgroundColor: activeColors.surface }]}>
                         <Text style={[styles.title, { color: activeColors.text }]}>{report.name}</Text>
                         <Text style={[styles.date, { color: activeColors.textSecondary }]}>
                             Submitted by User #{report.user_id} on {new Date(report.created_at).toLocaleDateString()}
@@ -108,7 +171,7 @@ export default function BeforeAfterReport() {
                     </View>
                 </ScrollView>
 
-                <View style={[styles.bottomNav, { backgroundColor: activeColors.card, borderTopColor: activeColors.border }]}>
+                <View style={[styles.bottomNav, { backgroundColor: activeColors.surface, borderTopColor: activeColors.border }]}>
                     <NavItem icon="grid" label="Overview" onPress={() => router.push('/admin/dashboard')} activeColors={activeColors} />
                     <NavItem icon="people" label="Users" onPress={() => router.push('/admin/users')} activeColors={activeColors} />
                     <NavItem icon="storefront" label="GSM" onPress={() => router.push('/admin/gsm')} activeColors={activeColors} />
@@ -125,16 +188,61 @@ export default function BeforeAfterReport() {
             <View style={[styles.center, { backgroundColor: activeColors.background }]}>
                 <Text style={{ color: activeColors.text }}>Report not found.</Text>
                 <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
-                    <Text style={{ color: activeColors.tint }}>Go Back</Text>
+                    <Text style={{ color: activeColors.primary }}>Go Back</Text>
                 </TouchableOpacity>
             </View>
         );
     }
 
     // List View (Default - when no ID is present)
+    if (Platform.OS === 'web') {
+        return (
+            <AdminWebLayout title="Field Reports">
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                    <Text style={{ fontSize: 18, fontWeight: '700', color: activeColors.text }}>All Reports History</Text>
+                    <TouchableOpacity
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: activeColors.surfaceSecondary || '#f3f4f6', borderRadius: 12 }}
+                        onPress={loadAllReports}
+                    >
+                        <Ionicons name="refresh" size={18} color={activeColors.text} />
+                        <Text style={{ fontWeight: '600', color: activeColors.text }}>Refresh</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
+                    {reports.length === 0 ? (
+                        <View style={[styles.center, { width: '100%', padding: 100 }]}>
+                            <Ionicons name="documents-outline" size={64} color={activeColors.textMuted} />
+                            <Text style={{ color: activeColors.textSecondary, marginTop: 16 }}>No reports found.</Text>
+                        </View>
+                    ) : (
+                        reports.map((item: any) => (
+                            <TouchableOpacity
+                                key={item.id}
+                                style={[styles.reportItem, { backgroundColor: activeColors.surface, width: '32%', marginBottom: 0, padding: 20, borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 }]}
+                                onPress={() => router.push(`/admin/before-after?id=${item.id}`)}
+                            >
+                                <View style={[styles.reportIcon, { backgroundColor: activeColors.primary + '15', width: 56, height: 56, borderRadius: 16 }]}>
+                                    <Ionicons name="camera" size={28} color={activeColors.primary} />
+                                </View>
+                                <View style={styles.reportContent}>
+                                    <Text style={[styles.reportTitle, { color: activeColors.text, fontSize: 16 }]} numberOfLines={1}>{item.name || 'Before/After Report'}</Text>
+                                    <Text style={[styles.reportSubtitle, { color: activeColors.textSecondary, marginTop: 4 }]}>
+                                        User #{item.user_id} • {new Date(item.created_at).toLocaleDateString()}
+                                    </Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color={activeColors.textSecondary} />
+                            </TouchableOpacity>
+                        ))
+                    )}
+                </View>
+            </AdminWebLayout>
+        );
+    }
+
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: activeColors.background }]}>
-            <View style={[styles.header, { backgroundColor: activeColors.card }]}>
+            <View style={[styles.header, { backgroundColor: activeColors.surface }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                     <Ionicons name="arrow-back" size={24} color={activeColors.text} />
                 </TouchableOpacity>
@@ -153,11 +261,11 @@ export default function BeforeAfterReport() {
                     reports.map((item: any) => (
                         <TouchableOpacity
                             key={item.id}
-                            style={[styles.reportItem, { backgroundColor: activeColors.card }]}
+                            style={[styles.reportItem, { backgroundColor: activeColors.surface }]}
                             onPress={() => router.push(`/admin/before-after?id=${item.id}`)}
                         >
-                            <View style={[styles.reportIcon, { backgroundColor: activeColors.tint + '15' }]}>
-                                <Ionicons name="camera" size={24} color={activeColors.tint} />
+                            <View style={[styles.reportIcon, { backgroundColor: activeColors.primary + '15' }]}>
+                                <Ionicons name="camera" size={24} color={activeColors.primary} />
                             </View>
                             <View style={styles.reportContent}>
                                 <Text style={[styles.reportTitle, { color: activeColors.text }]}>{item.name || 'Before/After Report'}</Text>
@@ -171,7 +279,7 @@ export default function BeforeAfterReport() {
                 )}
             </ScrollView>
 
-            <View style={[styles.bottomNav, { backgroundColor: activeColors.card, borderTopColor: activeColors.border }]}>
+            <View style={[styles.bottomNav, { backgroundColor: activeColors.surface, borderTopColor: activeColors.border }]}>
                 <NavItem icon="grid" label="Overview" onPress={() => router.push('/admin/dashboard')} activeColors={activeColors} />
                 <NavItem icon="people" label="Users" onPress={() => router.push('/admin/users')} activeColors={activeColors} />
                 <NavItem icon="storefront" label="GSM" onPress={() => router.push('/admin/gsm')} activeColors={activeColors} />
@@ -188,9 +296,9 @@ function NavItem({ icon, label, active = false, onPress, activeColors }: any) {
             <Ionicons
                 name={icon}
                 size={22}
-                color={active ? activeColors.tint : activeColors.textSecondary}
+                color={active ? activeColors.primary : activeColors.textSecondary}
             />
-            <Text style={[styles.navText, { color: active ? activeColors.tint : activeColors.textSecondary }]}>
+            <Text style={[styles.navText, { color: active ? activeColors.primary : activeColors.textSecondary }]}>
                 {label}
             </Text>
         </TouchableOpacity>

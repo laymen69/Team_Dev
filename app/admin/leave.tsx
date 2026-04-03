@@ -2,11 +2,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    Alert, FlatList,
-    Modal, ScrollView,
-    StyleSheet, Text, TextInput, TouchableOpacity, View
+    Alert,
+    FlatList,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AdminWebLayout } from '../../components/admin/WebLayout';
 import { Badge } from '../../components/ui/Badge';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Button } from '../../components/ui/Button';
@@ -17,6 +25,7 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { ADMIN_NAV_ITEMS } from '../../constants/navigation';
 import { useTheme } from '../../context/ThemeContext';
+import { Fonts } from '../../hooks/useFonts';
 import { LeaveRequest, LeaveService } from '../../services/leave.service';
 
 export default function LeavePage() {
@@ -24,7 +33,7 @@ export default function LeavePage() {
     const { theme } = useTheme();
     const colors = getColors(theme);
 
-    const [selectedTab, setSelectedTab] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+    const [selectedTab, setSelectedTab] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -118,6 +127,165 @@ export default function LeavePage() {
             )}
         </Card>
     );
+
+    if (Platform.OS === 'web') {
+        return (
+            <AdminWebLayout title="Leave Management">
+                <View style={{ marginBottom: 32 }}>
+                    <View style={{ flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 16, padding: 4, alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.border }}>
+                        {(['all', 'pending', 'approved', 'rejected'] as const).map(tab => (
+                            <TouchableOpacity
+                                key={tab}
+                                onPress={() => setSelectedTab(tab)}
+                                style={{
+                                    paddingHorizontal: 24,
+                                    paddingVertical: 10,
+                                    borderRadius: 12,
+                                    backgroundColor: selectedTab === tab ? colors.primary : 'transparent',
+                                }}
+                            >
+                                <Text style={{
+                                    color: selectedTab === tab ? '#fff' : colors.textSecondary,
+                                    fontWeight: '700',
+                                    fontSize: 14
+                                }}>
+                                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+
+                {loading ? (
+                    <ListSkeleton count={4} />
+                ) : (
+                    <View>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <Text style={{ fontSize: 20, fontFamily: Fonts.headingSemiBold, color: colors.text }}>Staff Requests</Text>
+                            <TouchableOpacity onPress={load} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Ionicons name="refresh" size={16} color={colors.primary} />
+                                <Text style={{ color: colors.primary, fontWeight: '600' }}>Refresh Data</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={{ gap: 20 }}>
+                            {filteredRequests.length === 0 ? (
+                                <View style={[styles.empty, { padding: 80, backgroundColor: colors.surface, borderRadius: 24 }]}>
+                                    <Ionicons name="calendar-outline" size={64} color={colors.textMuted} />
+                                    <Text style={{ color: colors.textSecondary, marginTop: 16, fontSize: 18, fontWeight: '600' }}>No leave requests found</Text>
+                                    <Text style={{ color: colors.textMuted, marginTop: 8 }}>The list is clear for this filter.</Text>
+                                </View>
+                            ) : (
+                                filteredRequests.map((item: LeaveRequest) => (
+                                    <Card key={item.id} style={{ padding: 24, borderRadius: 20, flexDirection: 'row', gap: 24, alignItems: 'center' }}>
+                                        <View style={[styles.avatar, { width: 64, height: 64, borderRadius: 16, backgroundColor: colors.primary + '15' }]}>
+                                            <Text style={[styles.avatarText, { fontSize: 24, color: colors.primary }]}>{item.requester_name.charAt(0)}</Text>
+                                        </View>
+
+                                        <View style={{ flex: 1 }}>
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                <View>
+                                                    <Text style={{ fontSize: 18, fontFamily: Fonts.headingSemiBold, color: colors.text }}>{item.requester_name}</Text>
+                                                    <Text style={{ fontSize: 14, color: colors.textSecondary }}>{item.requester_role}</Text>
+                                                </View>
+                                                <Badge label={item.status.toUpperCase()} variant={getStatusVariant(item.status)} size="md" />
+                                            </View>
+
+                                            <View style={{ flexDirection: 'row', gap: 24, marginTop: 16 }}>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                                    <Ionicons name="calendar" size={16} color={colors.primary} />
+                                                    <Text style={{ fontWeight: '600', color: colors.text }}>{item.leave_type.replace(/_/g, ' ')}</Text>
+                                                </View>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                                    <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
+                                                    <Text style={{ color: colors.textSecondary }}>{item.start_date} → {item.end_date}</Text>
+                                                </View>
+                                            </View>
+
+                                            {item.reason && (
+                                                <Text style={{ marginTop: 12, color: colors.textSecondary, borderLeftWidth: 3, borderLeftColor: colors.border, paddingLeft: 12 }}>{item.reason}</Text>
+                                            )}
+                                        </View>
+
+                                        {item.status === 'pending' && (
+                                            <TouchableOpacity
+                                                style={{ backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 }}
+                                                onPress={() => { setReviewing(item); setAdminComment(''); }}
+                                            >
+                                                <Text style={{ color: '#fff', fontWeight: '700' }}>Review Request</Text>
+                                            </TouchableOpacity>
+                                        )}
+
+                                        {item.status !== 'pending' && item.admin_comment && (
+                                            <View style={{ width: 200, padding: 12, backgroundColor: colors.background, borderRadius: 12, borderWidth: 1, borderColor: colors.border }}>
+                                                <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 4 }}>ADMIN RESPONSE</Text>
+                                                <Text style={{ fontSize: 13, color: colors.text }}>{item.admin_comment}</Text>
+                                            </View>
+                                        )}
+                                    </Card>
+                                ))
+                            )}
+                        </View>
+                    </View>
+                )}
+                {reviewing && (
+                    <Modal visible={!!reviewing} transparent animationType="fade">
+                        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+                            <Card style={{ width: 500, padding: 32, borderRadius: 24 }}>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                                    <Text style={{ fontSize: 24, fontFamily: Fonts.headingSemiBold, color: colors.text }}>Review Leave Request</Text>
+                                    <TouchableOpacity onPress={() => setReviewing(null)}>
+                                        <Ionicons name="close" size={24} color={colors.text} />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={{ backgroundColor: colors.background, padding: 20, borderRadius: 16, marginBottom: 24 }}>
+                                    <Text style={{ fontWeight: '700', color: colors.text }}>{reviewing.requester_name}</Text>
+                                    <Text style={{ color: colors.textSecondary, marginTop: 4 }}>{reviewing.leave_type.replace(/_/g, ' ')}</Text>
+                                    <Text style={{ color: colors.textSecondary, marginTop: 2 }}>{reviewing.start_date} to {reviewing.end_date}</Text>
+                                    {reviewing.reason && <Text style={{ marginTop: 12, fontStyle: 'italic', color: colors.textSecondary }}>"{reviewing.reason}"</Text>}
+                                </View>
+
+                                <Text style={{ fontWeight: '600', color: colors.textSecondary, marginBottom: 8 }}>Admin Comment</Text>
+                                <TextInput
+                                    style={{
+                                        backgroundColor: colors.background,
+                                        borderRadius: 12,
+                                        padding: 16,
+                                        minHeight: 100,
+                                        color: colors.text,
+                                        borderWidth: 1,
+                                        borderColor: colors.border
+                                    }}
+                                    placeholder="Add a reason for approval/rejection..."
+                                    value={adminComment}
+                                    onChangeText={setAdminComment}
+                                    multiline
+                                />
+
+                                <View style={{ flexDirection: 'row', gap: 16, marginTop: 32 }}>
+                                    <TouchableOpacity
+                                        style={{ flex: 1, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: colors.danger, alignItems: 'center' }}
+                                        onPress={() => handleProcessRequest('rejected')}
+                                        disabled={isSaving}
+                                    >
+                                        <Text style={{ color: colors.danger, fontWeight: '700' }}>Reject Request</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: colors.success, alignItems: 'center' }}
+                                        onPress={() => handleProcessRequest('approved')}
+                                        disabled={isSaving}
+                                    >
+                                        <Text style={{ color: '#fff', fontWeight: '700' }}>Approve Request</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </Card>
+                        </View>
+                    </Modal>
+                )}
+            </AdminWebLayout>
+        );
+    }
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>

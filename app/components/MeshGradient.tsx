@@ -1,13 +1,26 @@
-import React, { useMemo } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { useMemo } from 'react';
+import { Dimensions, Platform, StyleSheet, View } from 'react-native';
+
+// WebView is only available on native — import lazily so web bundle doesn't choke
+let WebView: any = null;
+if (Platform.OS !== 'web') {
+    WebView = require('react-native-webview').WebView;
+}
 
 const { width, height } = Dimensions.get('window');
 
-const MeshGradient = () => {
+interface MeshGradientProps {
+    colors?: string[];
+    speed?: number;
+}
+
+const MeshGradient: React.FC<MeshGradientProps> = ({ 
+    colors: propColors, 
+    speed: propSpeed 
+}) => {
     const config = {
-        colors: ['#0037b9ff', '#003682ff', '#010977c5', '#011653ff', '#02275bff'],
-        speed: 2,
+        colors: propColors || ['#0037b9ff', '#003682ff', '#010977c5', '#011653ff', '#02275bff'],
+        speed: propSpeed || 2,
         horizontalPressure: 3,
         verticalPressure: 9,
         waveFrequencyX: 4,
@@ -187,23 +200,43 @@ const MeshGradient = () => {
     `, []);
 
     return (
-        <View style={StyleSheet.absoluteFill}>
-            <WebView
-                source={{ html: htmlContent }}
-                style={styles.webview}
-                scrollEnabled={false}
-                pointerEvents="none"
-                javaScriptEnabled={true}
-                domStorageEnabled={true}
-            />
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            {Platform.OS === 'web' ? (
+                // On web: use a native <iframe> with srcdoc — works in all browsers
+                //@ts-ignore
+                <iframe
+                    srcDoc={htmlContent}
+                    style={{
+                        position: 'absolute' as any,
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        border: 'none',
+                        pointerEvents: 'none',
+                    }}
+                    scrolling="no"
+                    frameBorder="0"
+                />
+            ) : (
+                // On native: use react-native-webview
+                <WebView
+                    source={{ html: htmlContent }}
+                    style={styles.webview}
+                    scrollEnabled={false}
+                    javaScriptEnabled={true}
+                    domStorageEnabled={true}
+                />
+            )}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     webview: {
+        flex: 1,
         backgroundColor: 'transparent',
-    }
+    },
 });
 
 export default MeshGradient;

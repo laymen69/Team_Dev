@@ -1,24 +1,24 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, Boolean, DateTime
-from sqlalchemy.orm import relationship
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from app.db.session import Base
+from datetime import datetime
 
 class Article(Base):
     __tablename__ = "articles"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True, nullable=False)
-    reference = Column(String, nullable=True)        # SKU / barcode
-    category = Column(String, nullable=True)          # Dairy, Beverage, Snacks…
-    brand = Column(String, nullable=True)
-    unit = Column(String, nullable=True)              # piece, kg, litre…
-    description = Column(Text, nullable=True)
-    is_active = Column(Boolean, default=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    reference: Mapped[str | None] = mapped_column(String, nullable=True)
+    category: Mapped[str | None] = mapped_column(String, nullable=True)
+    brand: Mapped[str | None] = mapped_column(String, nullable=True)
+    unit: Mapped[str | None] = mapped_column(String, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    # Optional: article belongs to a specific store
-    gms_id = Column(Integer, ForeignKey("gms.id"), nullable=True)
+    gms_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("gms.id"), nullable=True)
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), onupdate=func.now())
 
     gms = relationship("GMS")

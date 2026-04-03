@@ -27,7 +27,7 @@
   "include": [
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "app/NotFound"  ],
   "exclude": [
     "node_modules",
     "babel.config.js",

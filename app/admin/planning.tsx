@@ -6,6 +6,7 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
+    Platform,
     RefreshControl,
     StyleSheet,
     Text,
@@ -13,6 +14,8 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AdminWebLayout } from '../../components/admin/WebLayout';
+import { Badge } from '../../components/ui/Badge';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Card } from '../../components/ui/Card';
 import { Header } from '../../components/ui/Header';
@@ -20,6 +23,7 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { ADMIN_NAV_ITEMS } from '../../constants/navigation';
 import { useTheme } from '../../context/ThemeContext';
+import { Fonts } from '../../hooks/useFonts';
 import { GMSService } from '../../services/gms.service';
 import { Notification, NotificationService } from '../../services/notification.service';
 
@@ -28,7 +32,7 @@ export default function PlanningPage() {
     const { theme } = useTheme();
     const colors = getColors(theme);
 
-    const [selectedTab, setSelectedTab] = useState<'pending' | 'all'>('pending');
+    const [selectedTab, setSelectedTab] = useState<'all' | 'pending'>('all');
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -216,6 +220,125 @@ export default function PlanningPage() {
     const onBack = () => {
         router.replace('/admin');
     };
+    if (Platform.OS === 'web') {
+        return (
+            <AdminWebLayout title="Management Requests">
+                <View style={{ marginBottom: 32 }}>
+                    <View style={{ flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 16, padding: 4, alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.border }}>
+                        {(['all', 'pending'] as const).map(tab => (
+                            <TouchableOpacity
+                                key={tab}
+                                onPress={() => setSelectedTab(tab)}
+                                style={{
+                                    paddingHorizontal: 24,
+                                    paddingVertical: 10,
+                                    borderRadius: 12,
+                                    backgroundColor: selectedTab === tab ? colors.primary : 'transparent',
+                                }}
+                            >
+                                <Text style={{
+                                    color: selectedTab === tab ? '#fff' : colors.textSecondary,
+                                    fontWeight: '700',
+                                    fontSize: 14
+                                }}>
+                                    {tab.charAt(0).toUpperCase() + tab.slice(1)} Requests
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+
+                {loading ? (
+                    <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 100 }} />
+                ) : (
+                    <View>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <Text style={{ fontSize: 20, fontFamily: Fonts.headingSemiBold, color: colors.text }}>Actionable Notifications</Text>
+                            <TouchableOpacity onPress={loadNotifications} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Ionicons name="refresh" size={16} color={colors.primary} />
+                                <Text style={{ color: colors.primary, fontWeight: '600' }}>Refresh List</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={{ gap: 20 }}>
+                            {requestsList.length === 0 ? (
+                                <View style={[styles.empty, { padding: 80, backgroundColor: colors.surface, borderRadius: 24 }]}>
+                                    <Ionicons name="checkmark-done-circle-outline" size={64} color={colors.textMuted} />
+                                    <Text style={{ color: colors.textSecondary, marginTop: 16, fontSize: 18, fontWeight: '600' }}>No pending requests at the moment</Text>
+                                    <Text style={{ color: colors.textMuted, marginTop: 8 }}>Everything is up to date!</Text>
+                                </View>
+                            ) : (
+                                requestsList.map((item: Notification) => {
+                                    const config = getIconConfig(item.type);
+                                    return (
+                                        <Card key={item.id} style={[styles.requestCard, { padding: 24, borderRadius: 20 }]}>
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
+                                                    <View style={[styles.iconContainer, { width: 56, height: 56, borderRadius: 16, backgroundColor: config.color + '15' }]}>
+                                                        <Ionicons name={config.icon as any} size={28} color={config.color} />
+                                                    </View>
+                                                    <View>
+                                                        <Text style={{ fontSize: 18, fontFamily: Fonts.headingSemiBold, color: colors.text }}>{getRequestTypeLabel(item.type)}</Text>
+                                                        <Text style={{ fontSize: 14, color: colors.textMuted }}>{formatTime(item.created_at)}</Text>
+                                                    </View>
+                                                </View>
+                                                {!item.is_read && (
+                                                    <Badge label="NEW" variant="primary" size="sm" />
+                                                )}
+                                            </View>
+
+                                            <View style={[styles.details, { backgroundColor: colors.background, padding: 20, marginTop: 20, borderRadius: 16 }]}>
+                                                <Text style={[styles.title, { fontSize: 17, color: colors.text, marginBottom: 8 }]}>{item.title}</Text>
+                                                <Text style={[styles.message, { fontSize: 15, color: colors.textSecondary, lineHeight: 24 }]}>{item.message}</Text>
+                                            </View>
+
+                                            <View style={{ flexDirection: 'row', gap: 12, marginTop: 24, justifyContent: 'flex-end' }}>
+                                                {item.type === 'new_gms' && (
+                                                    <TouchableOpacity
+                                                        style={{ paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                                                        onPress={() => handleActionOption('approve', item)}
+                                                    >
+                                                        <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+                                                        <Text style={{ color: '#fff', fontWeight: '700' }}>Approve GMS</Text>
+                                                    </TouchableOpacity>
+                                                )}
+
+                                                {(item.type === 'report' || item.type === 'alert') && (
+                                                    <TouchableOpacity
+                                                        style={{ paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                                                        onPress={() => handleActionOption('fixed', item)}
+                                                    >
+                                                        <Ionicons name="build-outline" size={18} color="#fff" />
+                                                        <Text style={{ color: '#fff', fontWeight: '700' }}>Mark Fixed</Text>
+                                                    </TouchableOpacity>
+                                                )}
+
+                                                <TouchableOpacity
+                                                    style={{ paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: colors.warning, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                                                    onPress={() => handleActionOption('wait', item)}
+                                                >
+                                                    <Ionicons name="hourglass-outline" size={18} color={colors.warning} />
+                                                    <Text style={{ color: colors.warning, fontWeight: '700' }}>Keep Pending</Text>
+                                                </TouchableOpacity>
+
+                                                <TouchableOpacity
+                                                    style={{ width: 48, height: 48, borderRadius: 10, backgroundColor: colors.danger + '10', alignItems: 'center', justifyContent: 'center' }}
+                                                    onPress={() => handleActionOption('delete', item)}
+                                                >
+                                                    <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                                                </TouchableOpacity>
+                                            </View>
+                                        </Card>
+                                    );
+                                })
+                            )}
+                        </View>
+                    </View>
+                )}
+            </AdminWebLayout>
+        );
+    }
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <Header

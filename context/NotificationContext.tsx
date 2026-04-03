@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, Platform } from 'react-native';
 import { NotificationService } from '../services/notification.service';
 import { useAuth } from './AuthContext';
 
@@ -61,8 +61,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return stopPolling;
     }, [user, startPolling, stopPolling]);
 
-    // Re-fetch when the app comes back to the foreground
+    // Re-fetch when the app comes back to the foreground (native only — AppState is not available on web)
     useEffect(() => {
+        if (Platform.OS === 'web') return;
         const handleAppState = (state: AppStateStatus) => {
             if (state === 'active' && user) {
                 fetchCount();

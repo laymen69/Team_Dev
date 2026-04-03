@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types/auth';
-import apiClient from './apiClient';
+import apiClient, { setAuthTokenCache } from './apiClient';
 
 // JWT Helper Functions
 const base64Decode = (str: string) => {
@@ -77,6 +77,7 @@ export const AuthService = {
             if (!payload) throw new Error('Failed to decode token');
 
             // Save token first so apiClient can use it for the next request
+            setAuthTokenCache(accessToken);
             await AsyncStorage.setItem('userToken', accessToken);
 
             // Fetch full profile from DB (includes profileImage, phone, profileZone…)

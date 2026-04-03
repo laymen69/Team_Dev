@@ -1,6 +1,5 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as ExpoLocation from 'expo-location';
-import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -8,6 +7,7 @@ import {
     Dimensions,
     Keyboard,
     Modal,
+    Platform,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -17,6 +17,7 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AdminWebLayout } from '../../components/admin/WebLayout';
 import AppMapView, { Marker, PROVIDER_DEFAULT } from '../../components/AppMapView';
 import { Badge } from '../../components/ui/Badge';
 import { BottomNav } from '../../components/ui/BottomNav';
@@ -26,6 +27,7 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { DesignTokens, getColors } from '../../constants/designSystem';
 import { ADMIN_NAV_ITEMS } from '../../constants/navigation';
 import { useTheme } from '../../context/ThemeContext';
+import { Fonts } from '../../hooks/useFonts';
 import { GMS, GMSService } from '../../services/gms.service';
 import { UserService } from '../../services/user.service';
 import { User } from '../../types/auth';
@@ -238,6 +240,308 @@ export default function GSMPage() {
             (store.address || '').toLowerCase().includes(searchQuery.toLowerCase());
         return matchesSearch;
     });
+
+    if (Platform.OS === 'web') {
+        return (
+            <AdminWebLayout title="Store Management">
+                <View style={{ marginBottom: 32 }}>
+                    <View style={{ flexDirection: 'row', gap: 16, marginBottom: 24 }}>
+                        <StatCard label="STORES" value={stores.length} icon="storefront" color={colors.primary} />
+                        <StatCard label="HYPERMARKETS" value={stores.filter(s => s.type === 'Hypermarket').length} icon="business" color={colors.success} />
+                        <StatCard label="SUPERMARKETS" value={stores.filter(s => s.type === 'Supermarket').length} icon="cart" color={colors.secondary} />
+                    </View>
+
+                    <View style={{ flexDirection: 'row', gap: 20 }}>
+                        <View style={[styles.searchBox, { flex: 1, marginHorizontal: 0, backgroundColor: colors.surfaceSecondary }]}>
+                            <Ionicons name="search" size={20} color={colors.textMuted} />
+                            <TextInput
+                                style={[styles.searchInput, { color: colors.text }]}
+                                placeholder="Search points of sale..."
+                                placeholderTextColor={colors.textMuted}
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                            />
+                        </View>
+                        <TouchableOpacity
+                            style={{ backgroundColor: colors.primary, paddingHorizontal: 20, borderRadius: 12, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8 }}
+                            onPress={() => setModalVisible(true)}
+                        >
+                            <Ionicons name="add-circle-outline" size={20} color="#fff" />
+                            <Text style={{ color: '#fff', fontFamily: Fonts.headingSemiBold }}>Add New Store</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* View Toggle for Web */}
+                    <View style={{ flexDirection: 'row', backgroundColor: colors.surfaceSecondary, borderRadius: 12, padding: 4, marginTop: 16, width: 300 }}>
+                        <TouchableOpacity
+                            onPress={() => setViewMode('list')}
+                            style={{ flex: 1, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: viewMode === 'list' ? colors.primary : 'transparent' }}
+                        >
+                            <Ionicons name="list" size={18} color={viewMode === 'list' ? '#fff' : colors.textSecondary} />
+                            <Text style={{ color: viewMode === 'list' ? '#fff' : colors.textSecondary, fontWeight: '700' }}>List View</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setViewMode('map')}
+                            style={{ flex: 1, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: viewMode === 'map' ? colors.primary : 'transparent' }}
+                        >
+                            <Ionicons name="map" size={18} color={viewMode === 'map' ? '#fff' : colors.textSecondary} />
+                            <Text style={{ color: viewMode === 'map' ? '#fff' : colors.textSecondary, fontWeight: '700' }}>Map Explorer</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {error ? (
+                    <View style={[styles.errorContainer, { backgroundColor: colors.surface, padding: 40, borderRadius: 24, alignItems: 'center' }]}>
+                        <Ionicons name="alert-circle" size={64} color={colors.danger} />
+                        <Text style={[styles.errorText, { color: colors.text, fontSize: 18, marginTop: 16 }]}>{error}</Text>
+                        <TouchableOpacity style={[styles.retryBtn, { backgroundColor: colors.primary, marginTop: 24, paddingHorizontal: 32 }]} onPress={fetchStores}>
+                            <Text style={styles.retryBtnText}>Retry Connection</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : isLoading ? (
+                    <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 100 }} />
+                ) : viewMode === 'list' ? (
+                    <View>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <Text style={{ fontSize: 20, fontFamily: Fonts.headingSemiBold, color: colors.text }}>Registered Stores</Text>
+                            <TouchableOpacity onPress={onRefresh} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Ionicons name="refresh" size={16} color={colors.primary} />
+                                <Text style={{ color: colors.primary, fontWeight: '600' }}>Sync Data</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 20 }}>
+                            {filteredStores.map(store => (
+                                <View key={store.id} style={{ width: '31.5%' }}>
+                                    <Card style={[styles.storeCard, { padding: 20, borderRadius: 20 }]}>
+                                        <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center', marginBottom: 16 }}>
+                                            <View style={[styles.storeIcon, { backgroundColor: colors.primary + '10', width: 56, height: 56, borderRadius: 16 }]}>
+                                                <MaterialIcons name="storefront" size={28} color={colors.primary} />
+                                            </View>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={[styles.storeName, { fontSize: 18, color: colors.text }]} numberOfLines={1}>{store.name}</Text>
+                                                <Badge label={store.type || 'STORE'} variant={store.type === 'Hypermarket' ? 'success' : 'primary'} size="sm" />
+                                            </View>
+                                        </View>
+
+                                        <View style={{ gap: 8, marginBottom: 20 }}>
+                                            <View style={styles.detailRow}>
+                                                <Ionicons name="navigate-outline" size={14} color={colors.textSecondary} />
+                                                <Text style={[styles.detailText, { fontSize: 13, color: colors.textSecondary }]} numberOfLines={1}>{store.address || 'No address'}</Text>
+                                            </View>
+                                            <View style={styles.detailRow}>
+                                                <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+                                                <Text style={[styles.detailText, { fontSize: 13, color: colors.textSecondary }]}>{store.city || 'Unknown'}</Text>
+                                            </View>
+                                        </View>
+
+                                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                                            <TouchableOpacity
+                                                style={{ flex: 1, backgroundColor: colors.primary + '10', paddingVertical: 10, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                                                onPress={() => openAssignModal(store)}
+                                            >
+                                                <Ionicons name="person-add" size={16} color={colors.primary} />
+                                                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>Assign</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={{ width: 44, height: 44, backgroundColor: colors.danger + '10', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}
+                                                onPress={() => handleDeleteGMS(store)}
+                                            >
+                                                <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                                            </TouchableOpacity>
+                                        </View>
+                                    </Card>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                ) : (
+                    <View style={{ height: 600, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: colors.border, position: 'relative' }}>
+                        <AppMapView
+                            ref={mapRef}
+                            style={{ flex: 1 }}
+                            initialRegion={INITIAL_REGION}
+                            mapType={mapType}
+                        >
+                            {filteredStores.map(store => (
+                                <Marker
+                                    key={store.id}
+                                    coordinate={{
+                                        latitude: store.latitude,
+                                        longitude: store.longitude
+                                    }}
+                                    title={store.name}
+                                    description={store.address}
+                                    pinColor={store.type === 'Hypermarket' ? 'green' : 'indigo'}
+                                />
+                            ))}
+                            {userLocation && (
+                                <Marker
+                                    coordinate={userLocation}
+                                    title="You are here"
+                                    pinColor="red"
+                                />
+                            )}
+                        </AppMapView>
+
+                        {/* Floating Controls for Web */}
+                        <View style={{ position: 'absolute', top: 20, right: 20, gap: 12, zIndex: 1000 }}>
+                            <TouchableOpacity
+                                style={{ backgroundColor: colors.surface, width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5 }}
+                                onPress={() => setIsLayerMenuVisible(!isLayerMenuVisible)}
+                            >
+                                <MaterialIcons name="layers" size={24} color={colors.primary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={{ backgroundColor: colors.surface, width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5 }}
+                                onPress={locateUser}
+                            >
+                                {isLocating ? (
+                                    <ActivityIndicator size="small" color={colors.primary} />
+                                ) : (
+                                    <MaterialIcons name="my-location" size={24} color={colors.primary} />
+                                )}
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Layer Selection Menu for Web */}
+                        {isLayerMenuVisible && (
+                            <View style={{ position: 'absolute', top: 80, right: 20, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 8, gap: 4, zIndex: 1000, width: 160, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 10 }}>
+                                <TouchableOpacity
+                                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 10, backgroundColor: mapType === 'terrain' ? colors.primary + '15' : 'transparent' }}
+                                    onPress={() => { setMapType('terrain'); setIsLayerMenuVisible(false); }}
+                                >
+                                    <MaterialIcons name="terrain" size={20} color={mapType === 'terrain' ? colors.primary : colors.textSecondary} />
+                                    <Text style={{ fontWeight: '700', color: mapType === 'terrain' ? colors.primary : colors.text, fontSize: 13 }}>Relief View</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 10, backgroundColor: mapType === 'satellite' ? colors.primary + '15' : 'transparent' }}
+                                    onPress={() => { setMapType('satellite'); setIsLayerMenuVisible(false); }}
+                                >
+                                    <MaterialIcons name="satellite" size={20} color={mapType === 'satellite' ? colors.primary : colors.textSecondary} />
+                                    <Text style={{ fontWeight: '700', color: mapType === 'satellite' ? colors.primary : colors.text, fontSize: 13 }}>Satellite</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </View>
+                )}
+
+                {/* Modals for Web */}
+                <Modal visible={modalVisible} transparent animationType="fade">
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }}>
+                        <View style={[styles.modalContent, { backgroundColor: colors.surface, width: '100%', maxWidth: 500, height: 'auto', borderRadius: 24, padding: 32 }]}>
+                            <View style={[styles.modalHeader, { paddingHorizontal: 0, borderBottomWidth: 0, marginBottom: 24 }]}>
+                                <Text style={[styles.modalTitle, { fontSize: 24, color: colors.text }]}>Add New Store</Text>
+                                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                    <Ionicons name="close" size={24} color={colors.textSecondary} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView style={{ paddingHorizontal: 0 }}>
+                                <View style={styles.inputGroup}>
+                                    <Text style={[styles.label, { color: colors.text }]}>Store Name</Text>
+                                    <TextInput
+                                        style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                                        value={newGMS.name}
+                                        onChangeText={(t) => setNewGMS({ ...newGMS, name: t })}
+                                        placeholder="Supermarket Name"
+                                    />
+                                </View>
+                                <View style={styles.inputGroup}>
+                                    <Text style={[styles.label, { color: colors.text }]}>Address</Text>
+                                    <TextInput
+                                        style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                                        value={newGMS.address}
+                                        onChangeText={(t) => setNewGMS({ ...newGMS, address: t })}
+                                        placeholder="Full Address"
+                                    />
+                                </View>
+                                <View style={{ flexDirection: 'row', gap: 16 }}>
+                                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                                        <Text style={[styles.label, { color: colors.text }]}>City</Text>
+                                        <TextInput
+                                            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                                            value={newGMS.city}
+                                            onChangeText={(t) => setNewGMS({ ...newGMS, city: t })}
+                                            placeholder="City"
+                                        />
+                                    </View>
+                                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                                        <Text style={[styles.label, { color: colors.text }]}>Type</Text>
+                                        <View style={{ flexDirection: 'row', gap: 4 }}>
+                                            {['Supermarket', 'Hypermarket'].map(t => (
+                                                <TouchableOpacity
+                                                    key={t}
+                                                    style={{ flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: newGMS.type === t ? colors.primary : colors.border, backgroundColor: newGMS.type === t ? colors.primary : 'transparent', alignItems: 'center' }}
+                                                    onPress={() => setNewGMS({ ...newGMS, type: t as any })}
+                                                >
+                                                    <Text style={{ fontSize: 11, fontWeight: '700', color: newGMS.type === t ? '#fff' : colors.textSecondary }}>{t.toUpperCase()}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </View>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={{ backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 12 }}
+                                    onPress={handleCreateGMS}
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Register Store</Text>}
+                                </TouchableOpacity>
+                            </ScrollView>
+                        </View>
+                    </View>
+                </Modal>
+
+                <Modal visible={isAssignModalVisible} transparent animationType="fade">
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }}>
+                        <View style={[styles.modalContent, { backgroundColor: colors.surface, width: '100%', maxWidth: 500, height: 'auto', borderRadius: 24, padding: 32 }]}>
+                            <View style={[styles.modalHeader, { paddingHorizontal: 0, borderBottomWidth: 0, marginBottom: 8 }]}>
+                                <View>
+                                    <Text style={[styles.modalTitle, { fontSize: 24, color: colors.text }]}>Assign Staff</Text>
+                                    <Text style={{ color: colors.textSecondary }}>To: {selectedStore?.name}</Text>
+                                </View>
+                                <TouchableOpacity onPress={() => setIsAssignModalVisible(false)}>
+                                    <Ionicons name="close" size={24} color={colors.textSecondary} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView style={{ marginVertical: 20, maxHeight: 400 }}>
+                                {merchandisers.map(merch => {
+                                    const isAssigned = selectedStore ? (assignments[selectedStore.id] || []).includes(String(merch.id)) : false;
+                                    return (
+                                        <TouchableOpacity
+                                            key={merch.id}
+                                            style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 12 }}
+                                            onPress={() => selectedStore && toggleAssignment(selectedStore.id, merch.id)}
+                                        >
+                                            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: colors.primary + '15', alignItems: 'center', justifyContent: 'center' }}>
+                                                <Text style={{ color: colors.primary, fontWeight: '700' }}>{merch.firstName?.[0]}{merch.lastName?.[0]}</Text>
+                                            </View>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={{ fontWeight: '700', color: colors.text }}>{merch.firstName} {merch.lastName}</Text>
+                                                <Text style={{ fontSize: 12, color: colors.textSecondary }}>{merch.email}</Text>
+                                            </View>
+                                            <Ionicons name={isAssigned ? "checkmark-circle" : "ellipse-outline"} size={24} color={isAssigned ? colors.success : colors.textMuted} />
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </ScrollView>
+
+                            <TouchableOpacity
+                                style={{ backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' }}
+                                onPress={saveAssignments}
+                            >
+                                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Save Changes</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+            </AdminWebLayout>
+        );
+    }
+
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>

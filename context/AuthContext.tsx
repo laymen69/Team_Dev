@@ -3,7 +3,7 @@ import { useRouter, useSegments } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import apiClient from '../services/apiClient';
+import apiClient, { setAuthTokenCache } from '../services/apiClient';
 import { AuthService } from '../services/auth.service';
 import { appEventEmitter, AppEvents } from '../services/eventEmitter';
 import { AuthState, User } from '../types/auth';
@@ -63,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     // Check if token is expired
                     if (AuthService.isTokenExpired(token)) {
                         console.log('[Auth] Token expired, logging out');
+                        setAuthTokenCache(null);
                         await deleteItem(STORAGE_KEY);
                         await AsyncStorage.removeItem('userToken');
                         setUser(null);
@@ -113,12 +114,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (isLoading) return;
 
-        const inAuthGroup = (segments.length as number) === 0 ||
-            (segments[0] as string) === 'login' ||
-            (segments[0] as string) === 'forgot-password' ||
-            (segments[0] as string) === 'signup' ||
-            (segments[0] as string) === 'about' ||
-            (segments[0] as string) === 'index';
+        const inAuthGroup = !segments.length ||
+            segments[0] === 'login' ||
+            segments[0] === 'signup' ||
+            segments[0] === 'forgot-password' ||
+            segments[0] === 'about' ||
+            segments[0] === 'try' ||
+            segments[0] === 'indexMobile' ||
+            segments[0] === 'button' ||
+            segments[0] === 'page_mobile' ||
+            segments[0] === '+not-found';
         const inDashboardGroup = (segments[0] as string) === 'dashboard_web';
         if (inDashboardGroup) return;
 
@@ -182,6 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const signOut = async () => {
+        setAuthTokenCache(null);
         await deleteItem(STORAGE_KEY);
         if (Platform.OS !== 'web') {
             await SecureStore.deleteItemAsync('userToken').catch(() => {

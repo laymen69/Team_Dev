@@ -12,9 +12,14 @@ export interface GMS {
 }
 
 export const GMSService = {
-    getAll: async (): Promise<GMS[]> => {
+    getAll: async (params?: { skip?: number; limit?: number }): Promise<GMS[]> => {
         try {
-            const response = await apiClient.get('/api/gms/');
+            const response = await apiClient.get('/api/gms/', {
+                params: {
+                    skip: params?.skip ?? 0,
+                    limit: params?.limit ?? 50,
+                },
+            });
             return response.data;
         } catch (error) {
             console.error('[GMS] GetAll error:', error);

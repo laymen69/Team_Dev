@@ -5,6 +5,7 @@ import { Stack } from 'expo-router/stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
@@ -13,16 +14,19 @@ import { usePermissions } from '../hooks/usePermissions';
 
 import { useAppFonts } from '../hooks/useFonts';
 
-// Configure notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Configure notification behavior — native only (web has no NativeEventEmitter)
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
+
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -81,7 +85,7 @@ function RootLayoutContent() {
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="login" />
-        <Stack.Screen name="dashboard_web" />
+        <Stack.Screen name="indexMobile" />
         <Stack.Screen name="signup" />
         <Stack.Screen name="forgot-password" />
         <Stack.Screen name="about" />

@@ -1,346 +1,461 @@
-'use client';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ArrowRight, BarChart3, MapPin, Shield, Users, Zap } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import {
+    ArrowRight,
+    BarChart3,
+    CheckCircle2,
+    Command,
+    Globe2,
+    Layers,
+    LineChart,
+    Shield,
+    Sparkles,
+    Target,
+    Users,
+    Zap,
+} from 'lucide-react-native';
+import React, { useEffect, useRef } from 'react';
+import {
+    Animated,
+    Dimensions,
+    Easing,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Fonts } from '../hooks/useFonts';
 
-export default function LandingPage() {
-    const [scrollY, setScrollY] = useState(0);
-    const router = useRouter();
+const { width: W, height: H } = Dimensions.get('window');
+
+const COLOR = {
+    bg: '#09090b',
+    surface: '#111113',
+    border: 'rgba(255,255,255,0.07)',
+    gold: '#d4a84b',
+    goldLight: '#f5d98c',
+    goldDim: 'rgba(212,168,75,0.15)',
+    white: '#ffffff',
+    textMuted: 'rgba(255,255,255,0.40)',
+    textSub: 'rgba(255,255,255,0.65)',
+    violet: '#8b5cf6',
+    sky: '#38bdf8',
+    rose: '#fb7185',
+    emerald: '#34d399',
+};
+
+/* ── Sub-components ──────────────────────── */
+
+const GoldText = ({ children, style }: any) => {
+    const shineAnim = useRef(new Animated.Value(0)).current;
+
     useEffect(() => {
-        const handleScroll = () => {
-            setScrollY(window.scrollY);
-        };
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(shineAnim, { toValue: 1, duration: 3000, easing: Easing.linear, useNativeDriver: false }),
+                Animated.timing(shineAnim, { toValue: 0, duration: 0, useNativeDriver: false }),
+            ])
+        ).start();
+    }, []);
 
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
+    const translateX = shineAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-100, W],
+    });
+
+    return (
+        <View style={[{ position: 'relative', overflow: 'hidden' }, style]}>
+            <Text style={[style, { color: COLOR.gold }]}>{children}</Text>
+            <Animated.View style={{
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                width: 100,
+                transform: [{ translateX }],
+            }}>
+                <LinearGradient
+                    colors={['transparent', 'rgba(255,255,255,0.3)', 'transparent']}
+                    start={{ x: 0, y: 0.5 }}
+                    end={{ x: 1, y: 0.5 }}
+                    style={StyleSheet.absoluteFill}
+                />
+            </Animated.View>
+        </View>
+    );
+};
+
+const RevealView = React.memo(({ children, delay = 0, style }: any) => {
+    const anim = useRef(new Animated.Value(0)).current;
+    const translateY = useRef(new Animated.Value(20)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(anim, { toValue: 1, duration: 800, delay, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+            Animated.timing(translateY, { toValue: 0, duration: 800, delay, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        ]).start();
     }, []);
 
     return (
-        <div className="min-h-screen bg-background text-foreground overflow-hidden">
-            {/* Navigation */}
-            <nav className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 border-b border-border">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent animate-pulse"></div>
-                        <span className="font-bold text-xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                            MerchandisingTeam
-                        </span>
-                    </div>
-                    <div className="hidden md:flex gap-8 items-center">
-                        <a href="#features" className="hover:text-accent transition-colors" onClick={() => router.push('/features')}>
-                            Features
-                        </a>
-                        <a href="#capabilities" className="hover:text-accent transition-colors" onClick={() => router.push('/capabilities')}>
-                            Capabilities
-                        </a>
-                        <a href="#pricing" className="hover:text-accent transition-colors">
-                            Pricing
-                        </a>
-                    </div>
-                    <div className="flex gap-4">
-                        <button className="hidden sm:block px-6 py-2 rounded-lg border border-border hover:bg-secondary/50 transition-colors">
-                            Sign In
-                        </button>
-                        <button className="px-6 py-2 rounded-lg bg-gradient-to-r from-primary to-accent text-foreground font-semibold hover:shadow-lg transition-all duration-300 hover:scale-105">
-                            Get Started
-                        </button>
-                    </div>
-                </div>
-            </nav>
+        <Animated.View style={[style, { opacity: anim, transform: [{ translateY }] }]}>
+            {children}
+        </Animated.View>
+    );
+});
 
-            {/* Hero Section */}
-            <section className="relative min-h-screen flex items-center justify-center px-4 py-20 overflow-hidden">
-                {/* Animated gradient background */}
-                <div
-                    className="absolute inset-0 opacity-30"
-                    style={{
-                        background: `linear-gradient(135deg, #F9E3B2 0%, #A2DFF7 50%, #F1D298 100%)`,
-                        backgroundSize: '400% 400%',
-                        animation: 'gradient-shift 8s ease infinite',
-                        transform: `translateY(${scrollY * 0.5}px)`,
-                    }}
-                />
+const FloatingIcon = React.memo(({ children }: any) => {
+    const anim = useRef(new Animated.Value(0)).current;
 
-                <div className="absolute inset-0 opacity-20">
-                    <div className="absolute top-20 right-20 w-72 h-72 bg-accent rounded-full blur-3xl" />
-                    <div className="absolute bottom-20 left-20 w-72 h-72 bg-primary rounded-full blur-3xl" />
-                </div>
+    useEffect(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(anim, { toValue: 1, duration: 3000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+                Animated.timing(anim, { toValue: 0, duration: 3000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+            ])
+        ).start();
+    }, []);
 
-                <div className="relative z-10 max-w-5xl mx-auto text-center space-y-8" style={{ animation: 'fadeInUp 1s ease-out' }}>
-                    <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-foreground leading-tight">
-                        Manage Field Operations
-                        <span className="block bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-                            With Precision
-                        </span>
-                    </h1>
+    const translateY = anim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, -10],
+    });
 
-                    <p className="text-lg sm:text-xl text-foreground/80 max-w-2xl mx-auto leading-relaxed">
-                        Real-time merchandising coordination, GPS tracking, and instant event reporting. Empower your teams with intelligent operations management.
-                    </p>
+    return <Animated.View style={{ transform: [{ translateY }] }}>{children}</Animated.View>;
+});
 
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
-                        <a
-                            onClick={() => router.push('/login')}
-                            className="px-8 py-4 bg-gradient-to-r from-primary to-secondary rounded-lg font-semibold text-foreground shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2 group"
-                        >
-                            Start Free Trial
-                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </a>
-                        <button onClick={() => router.push('/about')} className="px-8 py-4 rounded-lg border-2 border-foreground/20 font-semibold hover:bg-foreground/10 transition-all duration-300">
-                            Watch Demo
-                        </button>
-                    </div>
+const GoldDivider = () => (
+    <LinearGradient
+        colors={['transparent', COLOR.gold, 'transparent']}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={{ height: 1, marginVertical: 40 }}
+    />
+);
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-12">
-                        <div style={{ animation: 'fadeInUp 0.8s ease-out 0.2s both' }} className="p-4 rounded-lg bg-card/60 backdrop-blur-sm border border-border">
-                            <div className="text-3xl font-bold text-primary">500+</div>
-                            <div className="text-sm text-foreground/70">Active Users</div>
-                        </div>
-                        <div style={{ animation: 'fadeInUp 0.8s ease-out 0.4s both' }} className="p-4 rounded-lg bg-card/60 backdrop-blur-sm border border-border">
-                            <div className="text-3xl font-bold text-accent">99.9%</div>
-                            <div className="text-sm text-foreground/70">Uptime</div>
-                        </div>
-                        <div style={{ animation: 'fadeInUp 0.8s ease-out 0.6s both' }} className="p-4 rounded-lg bg-card/60 backdrop-blur-sm border border-border col-span-2 md:col-span-1">
-                            <div className="text-3xl font-bold text-secondary">24/7</div>
-                            <div className="text-sm text-foreground/70">Support</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+/* ── Feature data ──────────────────────── */
+const FEATURES = [
+    { icon: Target, label: 'Precision GPS', copy: 'Sub-meter geofencing with intelligent battery management, keeping every agent perfectly connected.', ring: COLOR.gold, glow: 'rgba(212,168,75,0.12)' },
+    { icon: BarChart3, label: 'Command Analytics', copy: 'Holistic dashboards delivering KPIs, trend forecasts, and executive-level performance summaries.', ring: COLOR.violet, glow: 'rgba(139,92,246,0.12)' },
+    { icon: Users, label: 'Team Orchestration', copy: 'Role-stratified access hierarchies with real-time synchronisation across every organisational tier.', ring: COLOR.sky, glow: 'rgba(56,189,248,0.12)' },
+    { icon: Zap, label: 'Instant Reporting', copy: 'Timestamped proof-of-presence with photo logs, automated notification chains, and priority protocols.', ring: COLOR.rose, glow: 'rgba(251,113,133,0.12)' },
+    { icon: Shield, label: 'Enterprise Security', copy: 'Military-grade encryption, ISO-27001 compliance, and private-cloud deployment for sensitive ops.', ring: COLOR.emerald, glow: 'rgba(52,211,153,0.12)' },
+    { icon: Layers, label: 'Modular Platform', copy: 'Composable microservice modules that integrate seamlessly into your existing enterprise software.', ring: '#fb923c', glow: 'rgba(251,146,60,0.12)' },
+];
 
-            {/* Features Section */}
-            <section id="features" className="py-20 px-4 relative">
-                <div className="max-w-6xl mx-auto space-y-16">
-                    <div className="text-center space-y-4" style={{ animation: 'fadeInUp 0.8s ease-out' }}>
-                        <h2 className="text-4xl md:text-5xl font-bold">Powerful Features</h2>
-                        <p className="text-xl text-foreground/70 max-w-2xl mx-auto">
-                            Everything you need to streamline field merchandising operations
-                        </p>
-                    </div>
+const METRICS = [
+    { value: '500+', label: 'Active Teams' },
+    { value: '99.99%', label: 'SLA Uptime' },
+    { value: '2.4s', label: 'Avg Report Time' },
+    { value: '5.2B', label: 'Data Points / Mo' },
+];
 
-                    <div className="grid md:grid-cols-2 gap-8">
-                        {/* Feature 1 */}
-                        <div
-                            style={{ animation: 'slideInLeft 0.8s ease-out 0.2s both' }}
-                            className="group p-8 rounded-2xl bg-gradient-to-br from-card to-card/50 border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-xl"
-                        >
-                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                <MapPin className="w-6 h-6 text-foreground" />
-                            </div>
-                            <h3 className="text-2xl font-bold mb-2">GPS Tracking</h3>
-                            <p className="text-foreground/70">
-                                Real-time location tracking for all field teams with geofencing capabilities and automated check-ins.
-                            </p>
-                        </div>
+const PROGRESS = [
+    { label: 'Shelf Coverage', value: 94, color: COLOR.gold },
+    { label: 'Team Presence', value: 78, color: COLOR.violet },
+    { label: 'Report Accuracy', value: 99, color: COLOR.emerald },
+    { label: 'Route Efficiency', value: 87, color: COLOR.sky },
+];
 
-                        {/* Feature 2 */}
-                        <div
-                            style={{ animation: 'slideInRight 0.8s ease-out 0.3s both' }}
-                            className="group p-8 rounded-2xl bg-gradient-to-br from-card to-card/50 border border-border hover:border-accent/50 transition-all duration-300 hover:shadow-xl"
-                        >
-                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent to-secondary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                <BarChart3 className="w-6 h-6 text-foreground" />
-                            </div>
-                            <h3 className="text-2xl font-bold mb-2">Advanced Analytics</h3>
-                            <p className="text-foreground/70">
-                                Comprehensive dashboards with real-time insights, performance metrics, and trend analysis.
-                            </p>
-                        </div>
+export default function LandingPage() {
+    const router = useRouter();
 
-                        {/* Feature 3 */}
-                        <div
-                            style={{ animation: 'slideInLeft 0.8s ease-out 0.4s both' }}
-                            className="group p-8 rounded-2xl bg-gradient-to-br from-card to-card/50 border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-xl"
-                        >
-                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-secondary to-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                <Users className="w-6 h-6 text-foreground" />
-                            </div>
-                            <h3 className="text-2xl font-bold mb-2">Team Management</h3>
-                            <p className="text-foreground/70">
-                                Effortlessly manage supervisors and merchandisers with role-based access and performance tracking.
-                            </p>
-                        </div>
+    return (
+        <View style={S.container}>
+            <StatusBar barStyle="light-content" />
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+                {/* ── HERO SECTION ──────────────────────── */}
+                <View style={S.heroSection}>
+                    {/* Background decorations */}
+                    <View style={[S.glowBlob, { top: -100, left: -50, backgroundColor: 'rgba(212,168,75,0.12)' }]} />
+                    <View style={[S.glowBlob, { bottom: 100, right: -50, backgroundColor: 'rgba(139,92,246,0.10)' }]} />
+                    <View style={S.gridOverlay} />
 
-                        {/* Feature 4 */}
-                        <div
-                            style={{ animation: 'slideInRight 0.8s ease-out 0.5s both' }}
-                            className="group p-8 rounded-2xl bg-gradient-to-br from-card to-card/50 border border-border hover:border-accent/50 transition-all duration-300 hover:shadow-xl"
-                        >
-                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent to-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                <Zap className="w-6 h-6 text-foreground" />
-                            </div>
-                            <h3 className="text-2xl font-bold mb-2">Instant Reporting</h3>
-                            <p className="text-foreground/70">
-                                Event-based reporting with photo uploads, automated notifications, and instant escalation.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                    <SafeAreaView style={S.heroContent}>
+                        {/* Nav (simplified for mobile landing) */}
+                        <View style={S.navHero}>
+                            <View style={S.logo}>
+                                <View style={S.logoBadge}>
+                                    <Command size={18} color="#000" strokeWidth={2.5} />
+                                </View>
+                                <Text style={S.logoText}>Field<Text style={{ color: COLOR.gold }}>Force</Text></Text>
+                            </View>
+                            <TouchableOpacity style={S.navBtn} onPress={() => router.push('/login')}>
+                                <Text style={S.navBtnText}>Sign In</Text>
+                            </TouchableOpacity>
+                        </View>
 
-            {/* Capabilities Section */}
-            <section id="capabilities" className="py-20 px-4 bg-gradient-to-b from-transparent to-secondary/10">
-                <div className="max-w-6xl mx-auto">
-                    <div className="grid md:grid-cols-2 gap-12 items-center">
-                        <div style={{ animation: 'fadeInUp 0.8s ease-out' }} className="space-y-8">
-                            <h2 className="text-4xl font-bold">
-                                Built for
-                                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
-                                    Modern Operations
-                                </span>
-                            </h2>
-                            <div className="space-y-6">
-                                <div className="flex gap-4">
-                                    <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-                                        <Shield className="w-5 h-5 text-primary" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold mb-1">Enterprise Security</h4>
-                                        <p className="text-foreground/70">Bank-level encryption and compliance with all industry standards</p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="w-10 h-10 rounded-lg bg-accent/20 flex items-center justify-center flex-shrink-0">
-                                        <Zap className="w-5 h-5 text-accent" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold mb-1">Lightning Fast</h4>
-                                        <p className="text-foreground/70">Optimized for performance on any network condition</p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="w-10 h-10 rounded-lg bg-secondary/20 flex items-center justify-center flex-shrink-0">
-                                        <Users className="w-5 h-5 text-secondary" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold mb-1">Collaborative</h4>
-                                        <p className="text-foreground/70">Real-time collaboration between teams across all levels</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <RevealView delay={200} style={S.heroMain}>
+                            <View style={S.badge}>
+                                <Sparkles size={12} color={COLOR.gold} />
+                                <Text style={S.badgeText}>Enterprise Field Intelligence</Text>
+                            </View>
 
-                        <div style={{ animation: 'slideInRight 0.8s ease-out 0.3s both' }} className="relative">
-                            <div className="aspect-square rounded-2xl bg-gradient-to-br from-primary to-accent p-0.5">
-                                <div className="w-full h-full rounded-2xl bg-card flex items-center justify-center">
-                                    <div className="text-center space-y-4">
-                                        <BarChart3 className="w-16 h-16 text-primary mx-auto" />
-                                        <p className="text-sm text-foreground/70">Advanced Dashboard Preview</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                            <Text style={S.heroH1}>
+                                Orchestrate {'\n'}
+                                <Text style={{ fontFamily: Fonts.subheading, fontStyle: 'italic', fontWeight: '700', color: COLOR.gold }}>Field Success</Text> {'\n'}
+                                With Precision.
+                            </Text>
 
-            {/* CTA Section */}
-            <section className="py-20 px-4">
-                <div className="max-w-4xl mx-auto text-center space-y-8" style={{ animation: 'fadeInUp 0.8s ease-out' }}>
-                    <h2 className="text-4xl md:text-5xl font-bold">
-                        Ready to Transform Your
-                        <span className="block bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                            Operations?
-                        </span>
-                    </h2>
-                    <p className="text-xl text-foreground/70">
-                        Join hundreds of organizations managing their field operations more effectively
-                    </p>
-                    <button className="px-8 py-4 bg-gradient-to-r from-primary to-secondary rounded-lg font-semibold text-foreground shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 mx-auto block">
-                        Start Your Free Trial Today
-                    </button>
-                </div>
-            </section>
+                            <Text style={S.heroP}>
+                                Real-time merchandising coordination, GPS-grade location intelligence, and instant event synthesis.
+                            </Text>
 
-            {/* Footer */}
-            <footer className="border-t border-border bg-card/30 py-12 px-4">
-                <div className="max-w-6xl mx-auto grid md:grid-cols-4 gap-8 mb-8">
-                    <div className="space-y-4">
-                        <h4 className="font-bold">Product</h4>
-                        <ul className="space-y-2 text-sm text-foreground/70">
-                            <li>
-                                <a href="#" className="hover:text-primary transition-colors">
-                                    Features
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="hover:text-primary transition-colors">
-                                    Pricing
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="hover:text-primary transition-colors">
-                                    Security
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div className="space-y-4">
-                        <h4 className="font-bold">Company</h4>
-                        <ul className="space-y-2 text-sm text-foreground/70">
-                            <li>
-                                <a href="#" className="hover:text-primary transition-colors">
-                                    About
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="hover:text-primary transition-colors">
-                                    Blog
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="hover:text-primary transition-colors">
-                                    Careers
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div className="space-y-4">
-                        <h4 className="font-bold">Resources</h4>
-                        <ul className="space-y-2 text-sm text-foreground/70">
-                            <li>
-                                <a href="#" className="hover:text-primary transition-colors">
-                                    Documentation
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="hover:text-primary transition-colors">
-                                    API Docs
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="hover:text-primary transition-colors">
-                                    Support
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div className="space-y-4">
-                        <h4 className="font-bold">Legal</h4>
-                        <ul className="space-y-2 text-sm text-foreground/70">
-                            <li>
-                                <a href="#" className="hover:text-primary transition-colors">
-                                    Privacy
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="hover:text-primary transition-colors">
-                                    Terms
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="hover:text-primary transition-colors">
-                                    Contact
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                <div className="border-t border-border pt-8 text-center text-sm text-foreground/70">
-                    <p>&copy; 2024 MerchandisingTeam. All rights reserved.</p>
-                </div>
-            </footer>
-        </div>
+                            <View style={S.heroCtas}>
+                                <TouchableOpacity style={S.ctaPrimary} onPress={() => router.push('/login')}>
+                                    <LinearGradient
+                                        colors={[COLOR.gold, COLOR.goldLight, COLOR.gold]}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={S.ctaGradient}
+                                    >
+                                        <Text style={S.ctaTextPrimary}>Launch Platform</Text>
+                                        <ArrowRight size={18} color="#000" />
+                                    </LinearGradient>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity style={S.ctaSecondary} onPress={() => router.push('/about')}>
+                                    <Text style={S.ctaTextSecondary}>Explore Capabilities</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </RevealView>
+
+                        {/* Metrics Row */}
+                        <RevealView delay={600} style={S.metricsGrid}>
+                            {METRICS.map((m, i) => (
+                                <View key={i} style={S.metricCard}>
+                                    <Text style={S.metricValue}>{m.value}</Text>
+                                    <Text style={S.metricLabel}>{m.label}</Text>
+                                </View>
+                            ))}
+                        </RevealView>
+                    </SafeAreaView>
+                </View>
+
+                {/* ── DIVIDER ── */}
+                <GoldDivider />
+
+                {/* ── FEATURES SECTION ──────────────────── */}
+                <View style={S.section}>
+                    <RevealView delay={100} style={S.sectionHeader}>
+                        <View style={S.eyebrowRow}>
+                            <View style={S.eyebrowLine} />
+                            <Text style={S.eyebrow}>Core Capabilities</Text>
+                        </View>
+                        <Text style={S.sectionH2}>Built for <Text style={{ color: COLOR.gold }}>exceptional</Text> operations.</Text>
+                        <Text style={S.sectionP}>Every module engineered around one principle: field intelligence should be as sophisticated as the teams deploying it.</Text>
+                    </RevealView>
+
+                    <View style={S.featGrid}>
+                        {FEATURES.map((f, i) => (
+                            <RevealView key={i} delay={200 + i * 100} style={S.featCard}>
+                                <View style={[S.iconBox, { backgroundColor: f.glow, borderColor: f.ring + '30' }]}>
+                                    <f.icon size={22} color={f.ring} />
+                                </View>
+                                <Text style={S.featLabel}>{f.label}</Text>
+                                <Text style={S.featCopy}>{f.copy}</Text>
+                            </RevealView>
+                        ))}
+                    </View>
+                </View>
+
+                {/* ── INTELLIGENCE SECTION ──────────────── */}
+                <View style={[S.section, { backgroundColor: '#040405', marginVertical: 40 }]}>
+                    <View style={S.intelContent}>
+                        <RevealView delay={100} style={{ gap: 24 }}>
+                            <View style={S.eyebrowRow}>
+                                <View style={S.eyebrowLine} />
+                                <Text style={S.eyebrow}>Intelligence Layer</Text>
+                            </View>
+                            <Text style={S.sectionH2}>Operational <Text style={{ color: COLOR.gold }}>intelligence,</Text> redefined.</Text>
+                            <Text style={S.sectionP}>Our core analyzes store patterns, team dynamics, and route efficiency to surface insights no human eye could catch.</Text>
+
+                            <View style={{ gap: 16, marginTop: 10 }}>
+                                {[
+                                    'Sub-meter GPS with adaptive battery.',
+                                    'AI-driven route optimization.',
+                                    'AES-256 enterprise-grade security.',
+                                    'Real-time sync across all tiers.',
+                                ].map((line, i) => (
+                                    <View key={i} style={S.checkRow}>
+                                        <CheckCircle2 color={COLOR.gold} size={18} />
+                                        <Text style={S.checkText}>{line}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </RevealView>
+
+                        {/* Device Mockup */}
+                        <RevealView delay={400} style={S.mockupContainer}>
+                            <FloatingIcon>
+                                <LinearGradient colors={[COLOR.gold + '40', COLOR.white + '05', COLOR.violet + '20']} style={S.mockupBorder}>
+                                    <View style={S.mockupInner}>
+                                        <View style={S.mockupHeader}>
+                                            <View>
+                                                <Text style={S.mockupEyebrow}>Live Operation</Text>
+                                                <Text style={S.mockupTitle}>Store #4482</Text>
+                                            </View>
+                                            <View style={S.statusBadge}>
+                                                <Text style={S.statusText}>● Active</Text>
+                                            </View>
+                                        </View>
+
+                                        <View style={{ gap: 20 }}>
+                                            {PROGRESS.map((row, idx) => (
+                                                <View key={idx}>
+                                                    <View style={S.progRow}>
+                                                        <Text style={S.progLabel}>{row.label}</Text>
+                                                        <Text style={[S.progValue, { color: row.color }]}>{row.value}%</Text>
+                                                    </View>
+                                                    <View style={S.progTrack}>
+                                                        <View style={[S.progFill, { width: `${row.value}%`, backgroundColor: row.color }]} />
+                                                    </View>
+                                                </View>
+                                            ))}
+                                        </View>
+
+                                        <View style={S.mockupFooter}>
+                                            <Text style={S.mockupFooterText}>Ops: 124 Active</Text>
+                                            <Text style={S.mockupLocation}>36.80°N</Text>
+                                        </View>
+                                    </View>
+                                </LinearGradient>
+                            </FloatingIcon>
+                        </RevealView>
+                    </View>
+                </View>
+
+                {/* ── FOOTER ────────────────────────────── */}
+                <View style={S.footer}>
+                    <View style={S.footerContent}>
+                        <View style={S.footerBrand}>
+                            <View style={S.logo}>
+                                <View style={[S.logoBadge, { width: 34, height: 34 }]}>
+                                    <Command size={16} color="#000" strokeWidth={2.5} />
+                                </View>
+                                <Text style={[S.logoText, { fontSize: 18 }]}>FieldForce</Text>
+                            </View>
+                            <Text style={S.footerTagline}>Architectural-grade infrastructure for elite field operations.</Text>
+
+                            <View style={S.socialRow}>
+                                {[Globe2, Shield, LineChart].map((Icon, i) => (
+                                    <TouchableOpacity key={i} style={S.socialBtn}>
+                                        <Icon size={16} color="rgba(255,255,255,0.3)" />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        <GoldDivider />
+
+                        <View style={S.footerLinksGrid}>
+                            {[
+                                { title: 'Platform', links: ['Dashboard', 'GPS Engine', 'Reports'] },
+                                { title: 'Services', links: ['Enterprise', 'Security', 'Consulting'] },
+                                { title: 'Legal', links: ['Privacy', 'Terms', 'Compliance'] },
+                            ].map((col, i) => (
+                                <View key={i} style={S.footerCol}>
+                                    <Text style={S.footerColTitle}>{col.title}</Text>
+                                    {col.links.map((link, idx) => (
+                                        <Text key={idx} style={S.footerLink}>{link}</Text>
+                                    ))}
+                                </View>
+                            ))}
+                        </View>
+
+                        <Text style={S.bottomCopy}>© 2024 FIELDFORCE GLOBAL SYSTEMS. ALL RIGHTS RESERVED.</Text>
+                    </View>
+                </View>
+            </ScrollView>
+        </View>
     );
 }
+
+const S = StyleSheet.create({
+    container: { flex: 1, backgroundColor: COLOR.bg },
+    heroSection: { height: H * 0.9, position: 'relative' },
+    glowBlob: { position: 'absolute', width: 300, height: 300, borderRadius: 150, opacity: 0.2, filter: 'blur(80px)' } as any,
+    gridOverlay: { ...StyleSheet.absoluteFillObject, opacity: 0.1, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.1)' },
+    heroContent: { flex: 1, paddingHorizontal: 24 },
+
+    /* NAV HERO */
+    navHero: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 60, marginTop: 10 },
+    logo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    logoBadge: { width: 38, height: 38, borderRadius: 12, backgroundColor: COLOR.gold, justifyContent: 'center', alignItems: 'center' },
+    logoText: { color: COLOR.white, fontSize: 20, fontFamily: Fonts.heading, fontWeight: '900', letterSpacing: -1 },
+    navBtn: { paddingVertical: 6, paddingHorizontal: 12 },
+    navBtnText: { color: COLOR.textMuted, fontSize: 13, fontFamily: Fonts.bodyBold },
+
+    /* HERO CONTENT */
+    heroMain: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 24 },
+    badge: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 100, backgroundColor: 'rgba(212,168,75,0.1)', borderWidth: 1, borderColor: 'rgba(212,168,75,0.2)' },
+    badgeText: { color: COLOR.goldLight, fontSize: 10, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
+    heroH1: { fontSize: 42, color: COLOR.white, fontFamily: Fonts.heading, fontWeight: '900', textAlign: 'center', lineHeight: 46, letterSpacing: -1 },
+    heroP: { color: COLOR.textMuted, fontSize: 16, fontFamily: Fonts.body, lineHeight: 24, textAlign: 'center', maxWidth: 300 },
+
+    heroCtas: { flexDirection: 'row', gap: 12, marginTop: 10 },
+    ctaPrimary: { borderRadius: 16, overflow: 'hidden', elevation: 8 },
+    ctaGradient: { paddingVertical: 14, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    ctaTextPrimary: { color: '#000', fontSize: 15, fontWeight: '900', fontFamily: Fonts.heading },
+    ctaSecondary: { paddingVertical: 14, paddingHorizontal: 20, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', justifyContent: 'center' },
+    ctaTextSecondary: { color: COLOR.white, fontSize: 14, fontWeight: '600' },
+
+    metricsGrid: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 40 },
+    metricCard: { flex: 1, alignItems: 'center' },
+    metricValue: { color: COLOR.gold, fontSize: 24, fontWeight: '900', fontFamily: Fonts.heading },
+    metricLabel: { color: COLOR.textMuted, fontSize: 9, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginTop: 4 },
+
+    /* SECTION BASICS */
+    section: { paddingHorizontal: 24, paddingVertical: 60 },
+    eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+    eyebrowLine: { width: 30, height: 1, backgroundColor: COLOR.gold },
+    eyebrow: { color: COLOR.gold, fontSize: 10, fontWeight: '900', letterSpacing: 3, textTransform: 'uppercase' },
+    sectionHeader: { marginBottom: 48 },
+    sectionH2: { color: COLOR.white, fontSize: 32, fontWeight: '900', fontFamily: Fonts.heading, letterSpacing: -1, lineHeight: 38 },
+    sectionP: { color: COLOR.textMuted, fontSize: 15, fontFamily: Fonts.body, lineHeight: 24, marginTop: 16 },
+
+    featGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    featCard: { width: (W - 48 - 12) / 2, padding: 24, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    iconBox: { width: 44, height: 44, borderRadius: 14, borderWidth: 1, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+    featLabel: { color: COLOR.white, fontSize: 16, fontWeight: '800', marginBottom: 8, letterSpacing: -0.5 },
+    featCopy: { color: COLOR.textMuted, fontSize: 12, lineHeight: 18, fontWeight: '300' },
+
+    /* INTEL SECTION */
+    intelContent: { gap: 60 },
+    checkRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    checkText: { color: COLOR.textSub, fontSize: 15, fontWeight: '600' },
+
+    mockupContainer: { alignItems: 'center' },
+    mockupBorder: { borderRadius: 40, padding: 1 },
+    mockupInner: { backgroundColor: '#0d0d0f', borderRadius: 39, padding: 32, width: W * 0.85, gap: 24 },
+    mockupHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 16 },
+    mockupEyebrow: { color: COLOR.gold, fontSize: 9, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
+    mockupTitle: { color: COLOR.white, fontSize: 18, fontWeight: '700', marginTop: 4 },
+    statusBadge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 100, backgroundColor: 'rgba(52,211,153,0.1)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.2)' },
+    statusText: { color: COLOR.emerald, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+
+    progRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+    progLabel: { color: COLOR.textMuted, fontSize: 12, fontWeight: '600' },
+    progValue: { fontSize: 12, fontWeight: '800' },
+    progTrack: { height: 6, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 100, overflow: 'hidden' },
+    progFill: { height: '100%', borderRadius: 100 },
+
+    mockupFooter: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.04)', paddingTop: 16 },
+    mockupFooterText: { color: 'rgba(255,255,255,0.2)', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+    mockupLocation: { color: COLOR.gold, fontSize: 9, fontWeight: '900' },
+
+    /* FOOTER */
+    footer: { paddingBottom: 60, backgroundColor: '#040405' },
+    footerContent: { paddingHorizontal: 24 },
+    footerBrand: { gap: 16 },
+    footerTagline: { color: 'rgba(255,255,255,0.3)', fontSize: 14, lineHeight: 22, fontWeight: '300', maxWidth: W * 0.7 },
+    socialRow: { flexDirection: 'row', gap: 12 },
+    socialBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center' },
+
+    footerLinksGrid: { flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 32 },
+    footerCol: { minWidth: 100 },
+    footerColTitle: { color: 'rgba(255,255,255,0.35)', fontSize: 9, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 20 },
+    footerLink: { color: 'rgba(255,255,255,0.25)', fontSize: 13, marginBottom: 12 },
+    bottomCopy: { color: 'rgba(255,255,255,0.1)', fontSize: 9, fontWeight: '700', letterSpacing: 2, marginTop: 40, textAlign: 'center' },
+});

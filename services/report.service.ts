@@ -1,5 +1,7 @@
 import apiClient from './apiClient';
 
+import { createCrudService } from './serviceFactory';
+
 export interface Report {
     id: number;
     name: string;
@@ -18,35 +20,7 @@ export interface Report {
 }
 
 export const ReportService = {
-    getAll: async (): Promise<Report[]> => {
-        try {
-            const response = await apiClient.get('/api/reports/');
-            return response.data;
-        } catch (error) {
-            console.error('[Reports] GetAll error:', error);
-            return [];
-        }
-    },
-
-    getReportById: async (id: number): Promise<Report | null> => {
-        try {
-            const response = await apiClient.get(`/api/reports/${id}`);
-            return response.data;
-        } catch (error) {
-            console.error('[Reports] GetById error:', error);
-            return null;
-        }
-    },
-
-    create: async (report: Partial<Report>): Promise<Report | null> => {
-        try {
-            const response = await apiClient.post('/api/reports/', report);
-            return response.data;
-        } catch (error) {
-            console.error('[Reports] Create error:', error);
-            return null;
-        }
-    },
+    ...createCrudService<Report>('/api/reports'),
 
     updateStatus: async (reportId: number, status: string, rejectionReason?: string): Promise<Report | null> => {
         try {

@@ -8,7 +8,7 @@ export function useRoleProtection(allowedRoles: UserRole[]) {
     const router = useRouter();
     const segments = useSegments();
 
-    useEffect(() => {
+    useEffect(() => { 
         if (isLoading) return;
 
         if (!user) {
@@ -24,7 +24,7 @@ export function useRoleProtection(allowedRoles: UserRole[]) {
             else if (user.role === 'merchandiser') router.replace('/merchandiser/dashboard');
             else router.replace('/'); // Fallback
         }
-    }, [user, isLoading, segments]);
+    }, [user, isLoading, segments, allowedRoles, router]);
 
     return { isAuthorized: user && allowedRoles.includes(user.role), isLoading };
 }

@@ -1,9 +1,13 @@
+from time import time
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Body, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime
 import math
+import asyncio
+from jose import jwt, JWTError
+from app.core.security import SECRET_KEY, ALGORITHM
 
 from app.api.deps import get_db, get_current_user
 from app.models.user import User
@@ -103,10 +107,10 @@ def end_workday(
         raise HTTPException(status_code=400, detail="Close all active visits before ending your workday")
 
     db_workday.status = "completed"
-    db_workday.end_time = func.now()
+    db_workday.end_time = datetime.now()
     db_workday.end_lat = data.end_lat
     db_workday.end_lng = data.end_lng
-    
+
     db.commit()
     db.refresh(db_workday)
     return db_workday
@@ -120,8 +124,11 @@ def start_visit(
     current_user: User = Depends(get_current_user)
 ):
     # Ensure workday exists
-    workday = db.query(Workday).filter(Workday.id == data.workday_id).first()
-    if not workday or workday.user_id != current_user.id:
+    workday = db.query(Workday).filter(
+        Workday.id == data.workday_id,
+        Workday.user_id == current_user.id
+    ).first()
+    if workday is None:
         raise HTTPException(status_code=403, detail="Invalid workday session")
 
     # Check for active visit
@@ -171,7 +178,7 @@ def end_visit(
         raise HTTPException(status_code=404, detail="No active visit found with this ID")
 
     db_visit.status = "completed"
-    db_visit.end_time = func.now()
+    db_visit.end_time = datetime.now()
     db_visit.end_lat = data.end_lat
     db_visit.end_lng = data.end_lng
     
@@ -187,17 +194,38 @@ def sync_logs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    db_logs = []
+    # Protect the database from excessively large batches
+    MAX_BATCH = 500
+    if len(logs) > MAX_BATCH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Too many logs in a single batch (max {MAX_BATCH})"
+        )
+
+    db_logs: List[LocationLog] = []
+    
+    # N+1 Fix: pre-fetch valid workday IDs
+    workday_ids = list({log.workday_id for log in logs})
+    if not workday_ids:
+        return []
+        
+    valid_workdays = db.query(Workday.id).filter(
+        Workday.id.in_(workday_ids),
+        Workday.user_id == current_user.id
+    ).all()
+    valid_workday_ids = {wd.id for wd in valid_workdays}
+
     for log in logs:
-        # Basic verify
-        wd = db.query(Workday).filter(Workday.id == log.workday_id).first()
-        if not wd or wd.user_id != current_user.id:
+        if log.workday_id not in valid_workday_ids:
             continue
             
         db_log = LocationLog(**log.model_dump())
         db.add(db_log)
         db_logs.append(db_log)
     
+    if not db_logs:
+        return []
+
     db.commit()
     return db_logs
 
@@ -225,12 +253,24 @@ def get_active_session(
     }
 
 @router.websocket("/ws")
-async def websocket_tracking(websocket: WebSocket):
+async def websocket_tracking(websocket: WebSocket, token: str = None, db: Session = Depends(get_db)):
+    if not token:
+        await websocket.close(code=1008, reason="Missing token")
+        return
+        
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str | None = payload.get("sub")
+        if not email:
+            raise JWTError()
+    except JWTError:
+        await websocket.close(code=1008, reason="Invalid token")
+        return
+        
     await manager.connect(websocket)
     try:
         while True:
             data = await websocket.receive_json()
-            # Expecting data formatted as: {"type": "location_update", "user_id": 1, "lat": 30.0, "lng": -5.0}
             if data.get("type") == "location_update":
                 await manager.broadcast(data)
     except WebSocketDisconnect:

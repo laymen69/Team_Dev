@@ -1,0 +1,11 @@
+{
+  "source_directories": [
+    "backend"
+  ],
+  "search_path": [
+    "backend",
+    "C:\\Users\\21626\\AppData\\Roaming\\Python\\Python314\\site-packages"
+  ],
+  "python_version": "3.14",
+  "site_package_search_strategy": "pep561"
+}

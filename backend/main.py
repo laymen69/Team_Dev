@@ -1,16 +1,31 @@
-from fastapi import FastAPI
+from fastapi import FastAPI ,Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from app.api import auth, users, gms, notifications, reports, objectives, health, tracking, articles, complaints, leave_requests, export
 from app import models
 from app.db.session import engine, init_db
 from app.models import Base
 import os
 from fastapi.staticfiles import StaticFiles
+import time
+from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from app.core.rate_limit import limiter
+from app.db import indexes
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    Base.metadata.create_all(bind=engine)
+    yield
 
 app = FastAPI(
     title="Welcome to MerchandisingTeam App",
     description="this is Backend API for MerchandisingTeam App",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 
@@ -27,11 +42,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    process_time_ms = (time.time() - start) * 1000
+    response.headers["X-Process-Time-ms"] = f"{process_time_ms:.2f}"
+    return response
+
+
 os.makedirs("uploads/avatars", exist_ok=True)
 app.mount("/static", StaticFiles(directory="uploads"), name="static")
-init_db()
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-Base.metadata.create_all(bind=engine)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler) # type: ignore
+
+@app.exception_handler(404)
+async def custom_404_handler(request: Request, exc):
+    return JSONResponse(status_code=404, content={"message": "Not Found"})
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])

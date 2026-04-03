@@ -2,6 +2,7 @@ import { Camera } from 'expo-camera';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
 export type PermissionStatus = 'granted' | 'denied' | 'undetermined';
 
@@ -11,6 +12,7 @@ export function usePermissions() {
     const [cameraStatus, setCameraStatus] = useState<PermissionStatus>('undetermined');
 
     const requestNotificationPermission = useCallback(async () => {
+        if (Platform.OS === 'web') return;
         try {
             const { status } = await Notifications.requestPermissionsAsync();
             setNotificationStatus(status as PermissionStatus);
@@ -31,6 +33,7 @@ export function usePermissions() {
     }, []);
 
     const requestCameraPermission = useCallback(async () => {
+        if (Platform.OS === 'web') return false;
         try {
             const { status } = await Camera.requestCameraPermissionsAsync();
             setCameraStatus(status as PermissionStatus);
@@ -42,7 +45,11 @@ export function usePermissions() {
     }, []);
 
     useEffect(() => {
-        requestNotificationPermission();
+        // Defer notification request to optimize app startup speed and avoid splash screen jank
+        const timer = setTimeout(() => {
+            requestNotificationPermission();
+        }, 2000);
+        return () => clearTimeout(timer);
     }, [requestNotificationPermission]);
 
     return {

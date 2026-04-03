@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppMapView, { Marker, PROVIDER_DEFAULT } from '../../components/AppMapView';
+import MeshGradient from '../components/MeshGradient';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Button } from '../../components/ui/Button';
 import { Card, StatCard } from '../../components/ui/Card';
@@ -24,10 +27,18 @@ const INITIAL_REGION = {
     longitudeDelta: 0.1,
 };
 
+const TUNISIAN_CITIES = [
+    'Tunis', 'Sfax', 'Sousse', 'Kairouan', 'Bizerte', 'Gabès',
+    'Ariana', 'Gafsa', 'Monastir', 'Ben Arous', 'Kasserine', 
+    'Médenine', 'Nabeul', 'Tataouine', 'Béja', 'Jendouka', 
+    'Mahdia', 'Sidi Bouzid', 'Tozeur', 'Siliana', 'Zaghouan', 'Kebili'
+];
+
 export default function GMSPage() {
     const router = useRouter();
     const { theme } = useTheme();
     const { user } = useAuth();
+    const isDark = theme === 'dark';
     const colors = getColors(theme);
     const [gmsLocations, setGmsLocations] = useState<GMS[]>([]);
     const [loading, setLoading] = useState(true);
@@ -42,7 +53,7 @@ export default function GMSPage() {
         name: '',
         address: '',
         type: 'Supermarket',
-        city: 'Tunisia'
+        city: 'Sousse'
     });
 
     const mapRef = useRef<any>(null);
@@ -316,67 +327,146 @@ export default function GMSPage() {
 
             {/* Add GMS Modal */}
             <Modal visible={showAddModal} transparent animationType="slide">
-                <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                <View style={styles.modalOverlay}>
                     <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-                        <View style={styles.modalHeader}>
-                            <Text style={[styles.modalTitle, { color: colors.text }]}>Request New Location</Text>
-                            <Ionicons name="close" size={24} color={colors.textSecondary} onPress={() => setShowAddModal(false)} />
+                        <View style={styles.modalTopIndicator} />
+                        
+                        <View style={styles.modalHeaderContainer}>
+                            <View style={styles.meshContainer}>
+                                <MeshGradient 
+                                    colors={isDark ? ['#1e1b4b', '#312e81', '#4338ca', '#1e1b4b'] : ['#676e88ff', '#c7d2fe', '#818cf8', '#e0e7ff']} 
+                                />
+                            </View>
+                            <View style={styles.modalHeaderContent}>
+                                <View>
+                                    <Text style={[styles.modalTitle, { color: colors.text }]}>Request New Location</Text>
+                                    <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>Send to admin for verification</Text>
+                                </View>
+                                <TouchableOpacity 
+                                    onPress={() => setShowAddModal(false)}
+                                    style={[styles.closeBtn, { backgroundColor: colors.surfaceSecondary }]}
+                                >
+                                    <Ionicons name="close" size={22} color={colors.text} />
+                                </TouchableOpacity>
+                            </View>
                         </View>
                         <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-                            <Text style={[styles.label, { color: colors.textSecondary }]}>LOCATION NAME</Text>
-                            <TextInput
-                                style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-                                value={newGms.name}
-                                onChangeText={(t) => setNewGms({ ...newGms, name: t })}
-                                placeholder="Store name..."
-                                placeholderTextColor={colors.textMuted}
-                            />
-                            <Text style={[styles.label, { color: colors.textSecondary }]}>FULL ADDRESS</Text>
-                            <TextInput
-                                style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-                                value={newGms.address}
-                                onChangeText={(t) => setNewGms({ ...newGms, address: t })}
-                                placeholder="Complete street address..."
-                                placeholderTextColor={colors.textMuted}
-                            />
+                            <View style={styles.inputGroup}>
+                                <Text style={[styles.label, { color: colors.textSecondary }]}>LOCATION NAME</Text>
+                                <TextInput
+                                    style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
+                                    value={newGms.name}
+                                    onChangeText={(t) => setNewGms({ ...newGms, name: t })}
+                                    placeholder="Store name..."
+                                    placeholderTextColor={colors.textMuted}
+                                />
+                            </View>
 
-                            <Text style={[styles.label, { color: colors.textSecondary }]}>GEOGRAPHIC POSITION</Text>
-                            <TouchableOpacity
-                                style={[styles.mapSelectBtn, { borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}
-                                onPress={() => {
-                                    setShowAddModal(false);
-                                    setViewMode('map');
-                                    setIsPickingLocation(true);
-                                }}
-                            >
-                                <View style={styles.mapSelectBtnContent}>
-                                    <Ionicons name="map-outline" size={20} color={colors.primary} />
-                                    <Text style={[styles.mapSelectBtnText, { color: colors.textSecondary }]}>
-                                        {isPickingLocation ? "Position Selected" : "Select on the Map"}
+                            <View style={styles.inputGroup}>
+                                <Text style={[styles.label, { color: colors.textSecondary }]}>CITY</Text>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cityScroll}>
+                                    {TUNISIAN_CITIES.map(city => (
+                                        <TouchableOpacity
+                                            key={city}
+                                            onPress={() => setNewGms({ ...newGms, city })}
+                                            style={[
+                                                styles.cityTag,
+                                                { backgroundColor: newGms.city === city ? colors.primary : colors.surfaceSecondary },
+                                                newGms.city === city && styles.activeCityTag
+                                            ]}
+                                        >
+                                            <Text style={[
+                                                styles.cityTagText,
+                                                { color: newGms.city === city ? '#fff' : colors.textSecondary }
+                                            ]}>{city}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={[styles.label, { color: colors.textSecondary }]}>FULL ADDRESS</Text>
+                                <TextInput
+                                    style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
+                                    value={newGms.address}
+                                    onChangeText={(t) => setNewGms({ ...newGms, address: t })}
+                                    placeholder="Complete street address..."
+                                    placeholderTextColor={colors.textMuted}
+                                    multiline
+                                />
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <View style={styles.labelRow}>
+                                    <Text style={[styles.label, { color: colors.textSecondary }]}>GEOGRAPHIC POSITION</Text>
+                                    <Text style={[styles.coordsText, { color: colors.textMuted }]}>
+                                        {tempLocation.latitude.toFixed(4)}, {tempLocation.longitude.toFixed(4)}
                                     </Text>
                                 </View>
-                                {isPickingLocation && <Ionicons name="checkmark-circle" size={20} color={colors.success} />}
-                            </TouchableOpacity>
-
-                            <Text style={[styles.label, { color: colors.textSecondary }]}>TYPE</Text>
-                            <View style={styles.typeRow}>
-                                {['Supermarket', 'Hypermarket'].map((t) => (
-                                    <Button
-                                        key={t}
-                                        title={t}
-                                        variant={newGms.type === t ? 'primary' : 'ghost'}
-                                        onPress={() => setNewGms({ ...newGms, type: t })}
-                                        style={styles.typeBtn}
+                                <TouchableOpacity
+                                    style={[styles.mapSelectBtn, { borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}
+                                    onPress={() => {
+                                        setShowAddModal(false);
+                                        setViewMode('map');
+                                        setIsPickingLocation(true);
+                                    }}
+                                >
+                                    <View style={styles.mapSelectBtnContent}>
+                                        <Ionicons name="map-outline" size={20} color={colors.primary} />
+                                        <Text style={[styles.mapSelectBtnText, { color: colors.text }]}>
+                                            {isPickingLocation ? "Position Selected" : "Select on the Map"}
+                                        </Text>
+                                    </View>
+                                    <Ionicons 
+                                        name={isPickingLocation ? "checkmark-circle" : "chevron-forward"} 
+                                        size={20} 
+                                        color={isPickingLocation ? colors.success : colors.textMuted} 
                                     />
-                                ))}
+                                </TouchableOpacity>
                             </View>
-                            <Button
-                                title="Send Request to Admin"
-                                variant="primary"
-                                fullWidth
-                                style={styles.submitBtn}
+
+                            <View style={styles.inputGroup}>
+                                <Text style={[styles.label, { color: colors.textSecondary }]}>STORE TYPE</Text>
+                                <View style={styles.typeRow}>
+                                    {['Supermarket', 'Hypermarket'].map((t) => (
+                                        <TouchableOpacity
+                                            key={t}
+                                            onPress={() => setNewGms({ ...newGms, type: t })}
+                                            style={[
+                                                styles.typeBtn,
+                                                { 
+                                                    backgroundColor: newGms.type === t ? colors.primary : colors.surfaceSecondary,
+                                                    borderColor: newGms.type === t ? colors.primary : colors.border
+                                                }
+                                            ]}
+                                        >
+                                            <Ionicons 
+                                                name={t === 'Supermarket' ? 'cart-outline' : 'basket-outline'} 
+                                                size={18} 
+                                                color={newGms.type === t ? '#fff' : colors.textSecondary} 
+                                            />
+                                            <Text style={[styles.typeBtnText, { color: newGms.type === t ? '#fff' : colors.textSecondary }]}>
+                                                {t}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+
+                            <TouchableOpacity 
+                                style={[styles.submitBtn, { backgroundColor: colors.primary }]}
                                 onPress={handleAddRequest}
-                            />
+                                activeOpacity={0.8}
+                            >
+                                <LinearGradient
+                                    colors={[colors.primary, colors.primary + 'CC']}
+                                    style={styles.submitBtnGradient}
+                                >
+                                    <Text style={styles.submitBtnText}>Send Approval Request</Text>
+                                    <Ionicons name="send" size={18} color="#fff" />
+                                </LinearGradient>
+                            </TouchableOpacity>
+                            <View style={{ height: 40 }} />
                         </ScrollView>
                     </View>
                 </View>
@@ -512,17 +602,123 @@ const styles = StyleSheet.create({
     loadingContainer: { padding: 60, alignItems: 'center' },
     emptyContainer: { padding: 60, alignItems: 'center', gap: 16 },
     emptyText: { ...DesignTokens.typography.body, textAlign: 'center' },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40, maxHeight: '90%' },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-    modalTitle: { ...DesignTokens.typography.h2 },
-    modalBody: { gap: 16 },
-    label: { fontSize: 11, fontFamily: Fonts.bodyBold, marginBottom: -8 },
-    input: { padding: 14, borderWidth: 1, borderRadius: 14, fontSize: 15 },
-    mapSelectBtn: {
-        height: 52,
-        borderRadius: 14,
+    modalOverlay: { 
+        flex: 1, 
+        backgroundColor: 'rgba(0,0,0,0.6)', 
+        justifyContent: 'flex-end' 
+    },
+    modalContent: { 
+        borderTopLeftRadius: 36, 
+        borderTopRightRadius: 36, 
+        paddingBottom: 0, 
+        maxHeight: '92%',
+        overflow: 'hidden',
+        ...(Platform.OS === 'ios' ? {
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -10 },
+            shadowRadius: 20,
+            shadowOpacity: 0.1,
+        } : { elevation: 20 })
+    },
+    modalTopIndicator: {
+        width: 40,
+        height: 5,
+        backgroundColor: 'rgba(128,128,128,0.2)',
+        borderRadius: 3,
+        alignSelf: 'center',
+        marginTop: 12,
+        marginBottom: 8,
+        position: 'absolute',
+        zIndex: 10,
+    },
+    modalHeaderContainer: {
+        height: 100,
+        width: '100%',
+        position: 'relative',
+        justifyContent: 'flex-end',
+        paddingBottom: 16,
+    },
+    meshContainer: {
+        ...StyleSheet.absoluteFillObject,
+        opacity: 0.6,
+    },
+    modalHeaderContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+    },
+    modalTitle: { 
+        ...DesignTokens.typography.h2,
+        fontSize: 22,
+        fontFamily: Fonts.headingXBold,
+    },
+    modalSubtitle: {
+        fontSize: 13,
+        fontFamily: Fonts.bodyMedium,
+        marginTop: 2,
+    },
+    closeBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalBody: { 
+        padding: 24,
+    },
+    inputGroup: {
+        marginBottom: 20,
+    },
+    labelRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    label: { 
+        fontSize: 11, 
+        fontFamily: Fonts.bodyBold, 
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
+        marginBottom: 8,
+    },
+    coordsText: {
+        fontSize: 11,
+        fontFamily: Fonts.bodyMedium,
+    },
+    input: { 
+        padding: 16, 
+        borderWidth: 1.5, 
+        borderRadius: 16, 
+        fontSize: 15,
+        fontFamily: Fonts.bodyMedium,
+    },
+    cityScroll: {
+        marginHorizontal: -24,
+        paddingHorizontal: 24,
+    },
+    cityTag: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        marginRight: 10,
         borderWidth: 1,
+        borderColor: 'transparent',
+    },
+    activeCityTag: {
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    cityTagText: {
+        fontSize: 14,
+        fontFamily: Fonts.bodyBold,
+    },
+    mapSelectBtn: {
+        height: 56,
+        borderRadius: 16,
+        borderWidth: 1.5,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -535,9 +731,41 @@ const styles = StyleSheet.create({
     },
     mapSelectBtnText: {
         fontSize: 15,
-        fontFamily: Fonts.bodyMedium,
+        fontFamily: Fonts.bodyBold,
     },
-    typeRow: { flexDirection: 'row', gap: 12 },
-    typeBtn: { flex: 1 },
-    submitBtn: { marginTop: 12 },
+    typeRow: { 
+        flexDirection: 'row', 
+        gap: 12 
+    },
+    typeBtn: { 
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 14,
+        borderRadius: 16,
+        borderWidth: 1.5,
+    },
+    typeBtnText: {
+        fontSize: 15,
+        fontFamily: Fonts.bodyBold,
+    },
+    submitBtn: { 
+        marginTop: 10,
+        borderRadius: 18,
+        overflow: 'hidden',
+    },
+    submitBtnGradient: {
+        paddingVertical: 18,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+    },
+    submitBtnText: {
+        color: '#fff',
+        fontSize: 16,
+        fontFamily: Fonts.headingXBold,
+    }
 });

@@ -30,7 +30,7 @@ export const DesignTokens = {
             warning: '#FBBF24',
             danger: '#F87171',
             info: '#4071A0',
-            background: '#2D2D2D', // Deep Matte Black
+            background: '#2d2d2dff', // Deep Matte Black
             surface: '#333333', // Slightly lighter black
             surfaceSecondary: '#3B3B3B', // Charcoal Gray
             text: '#E0E0E0',
