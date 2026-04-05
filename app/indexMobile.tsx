@@ -17,6 +17,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { APP_COLORS } from '../constants/appColors';
+import { DesignTokens } from '../constants/designSystem';
+import { Fonts } from '../hooks/useFonts';
+import PremiumGlowButton from './button';
+import MarqueeLogos from './components/MarqueeLogos';
+
 const { width: W, height: H } = Dimensions.get("window");
 
 function rand(min: number, max: number) {
@@ -78,12 +84,6 @@ const GridDots = React.memo(function GridDots() {
     </View>
   );
 });
-
-import { APP_COLORS } from '../constants/appColors';
-import { DesignTokens } from '../constants/designSystem';
-import { Fonts } from '../hooks/useFonts';
-import PremiumGlowButton from './button';
-import MarqueeLogos from './components/MarqueeLogos';
 
 export default function HomeScreen() {
   const router = useRouter();

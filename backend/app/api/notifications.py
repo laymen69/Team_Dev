@@ -114,6 +114,26 @@ def notify_admins(
     # Refresh in batch if needed, but for response, models are already in session
     return created_notifications
 
+@router.post("/send", response_model=NotificationResponse)
+@router.post("/send/", response_model=NotificationResponse)
+def send_notification(
+    notification_in: NotificationCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    notification = Notification(
+        user_id=notification_in.user_id,
+        title=notification_in.title,
+        message=notification_in.message,
+        type=notification_in.type,
+        icon=notification_in.icon,
+        action_link=notification_in.action_link
+    )
+    db.add(notification)
+    db.commit()
+    db.refresh(notification)
+    return notification
+
 @router.delete("/{notification_id}")
 def delete_notification(
     notification_id: int,

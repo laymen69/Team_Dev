@@ -75,6 +75,9 @@ apiClient.interceptors.response.use(
 
         // Handle 401 Unauthorized
         if (error.response?.status === 401) {
+            if (error.config?.url?.includes('/api/auth/token')) {
+                return Promise.reject(error);
+            }
             console.log('[API] 401 Unauthorized detected - triggering global logout');
             memoryToken = null;
             emitUnauthorized();

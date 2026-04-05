@@ -38,7 +38,7 @@ const ADMIN_LINKS = [
 const GROUPS = ['Overview', 'Content', 'Settings'];
 
 // A single animated nav item that responds to hover
-const NavItem = React.memo(({ link, isActive, onPress, colors, isDark, isCollapsed }: any) => {
+const NavItem = React.memo(function NavItem({ link, isActive, onPress, colors, isDark, isCollapsed }: any) {
     const hoverAnim = useRef(new Animated.Value(0)).current;
 
     const handleHoverIn = () => {

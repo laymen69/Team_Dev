@@ -82,7 +82,7 @@ export default function PlanningPage() {
 
                         if (newGms) {
                             await NotificationService.sendNotification({
-                                user_id: item.user_id,
+                                user_id: item.user_id || 1,
                                 title: 'New GMS Approved',
                                 message: `Your request to add ${payload.name} has been approved.`,
                                 type: 'success',
@@ -97,7 +97,7 @@ export default function PlanningPage() {
                     break;
                 case 'fixed':
                     await NotificationService.sendNotification({
-                        user_id: item.user_id,
+                        user_id: item.user_id || 1,
                         title: 'Report Fixed',
                         message: `The issue you reported has been resolved.`,
                         type: 'success',

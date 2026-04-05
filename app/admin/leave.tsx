@@ -243,7 +243,7 @@ export default function LeavePage() {
                                     <Text style={{ fontWeight: '700', color: colors.text }}>{reviewing.requester_name}</Text>
                                     <Text style={{ color: colors.textSecondary, marginTop: 4 }}>{reviewing.leave_type.replace(/_/g, ' ')}</Text>
                                     <Text style={{ color: colors.textSecondary, marginTop: 2 }}>{reviewing.start_date} to {reviewing.end_date}</Text>
-                                    {reviewing.reason && <Text style={{ marginTop: 12, fontStyle: 'italic', color: colors.textSecondary }}>"{reviewing.reason}"</Text>}
+                                    {reviewing.reason && <Text style={{ marginTop: 12, fontStyle: 'italic', color: colors.textSecondary }}>&quot;{reviewing.reason}&quot;</Text>}
                                 </View>
 
                                 <Text style={{ fontWeight: '600', color: colors.textSecondary, marginBottom: 8 }}>Admin Comment</Text>

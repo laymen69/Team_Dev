@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { GlassView } from './GlassView';
 import { PremiumPressable } from './PremiumPressable';
+import { useNotifications } from '../../context/NotificationContext';
 
 interface HeaderProps {
     title: string;
@@ -21,8 +22,6 @@ interface HeaderProps {
     showBack?: boolean;
     onBack?: () => void;
 }
-
-import { useNotifications } from '../../context/NotificationContext';
 
 export const Header: React.FC<HeaderProps> = ({
     title,

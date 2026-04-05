@@ -71,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         const expiration = AuthService.getTokenExpiration(token);
                         console.log('[Auth] Token valid until:', expiration);
                         const storedUser = JSON.parse(jsonUser);
+                        setAuthTokenCache(token);
                         // Set stored user immediately so UI doesn't block
                         setUser(storedUser);
                         // Then refresh from DB to get latest profileImage, phone, etc.
@@ -198,6 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
         } else {
             localStorage.removeItem('userToken');
+            await AsyncStorage.removeItem('userToken');
         }
 
         setUser(null);

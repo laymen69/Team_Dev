@@ -1,7 +1,7 @@
 from fastapi import FastAPI ,Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from app.api import auth, users, gms, notifications, reports, objectives, health, tracking, articles, complaints, leave_requests, export
+from app.api import auth, users, gms, notifications, reports, objectives, health, tracking, articles, complaints, leave_requests, export, stats
 from app import models
 from app.db.session import engine, init_db
 from app.models import Base
@@ -76,6 +76,7 @@ app.include_router(articles.router,      prefix="/api/articles",       tags=["ar
 app.include_router(complaints.router,    prefix="/api/complaints",     tags=["complaints"])
 app.include_router(leave_requests.router,prefix="/api/leave-requests", tags=["leave"])
 app.include_router(export.router,        prefix="/api/export",         tags=["exports"])
+app.include_router(stats.router,         prefix="/api/stats",          tags=["stats"])
 
 @app.get("/")
 def read_root():

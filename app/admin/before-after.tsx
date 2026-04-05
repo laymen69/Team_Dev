@@ -62,7 +62,7 @@ export default function BeforeAfterReport() {
                 
                 // Send notification to the user
                 await NotificationService.sendNotification({
-                    user_id: report.user_id,
+                    user_id: report.user_id || 1,
                     title: `Report ${status === 'approved' ? 'Approved' : 'Rejected'}`,
                     message: `Your report "${report.name}" has been ${status}.`,
                     type: status === 'approved' ? 'success' : 'alert',

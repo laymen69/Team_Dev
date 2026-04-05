@@ -13,7 +13,8 @@ import {
     Users,
     Zap
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { StatsService, PublicStats } from '../services/stats.service';
 import { Platform } from 'react-native';
 
 /* ──────────────────────────────────────────
@@ -42,6 +43,8 @@ const CSS = `
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
     body { -webkit-font-smoothing: antialiased; background-color: ${COLOR.bg}; }
+    body::-webkit-scrollbar { display: none; }
+    body { -ms-overflow-style: none; scrollbar-width: none; }
 
     .gold-text {
         background: linear-gradient(120deg, #d4a84b 0%, #f5d98c 40%, #d4a84b 70%, #b08c3c 100%);
@@ -120,7 +123,6 @@ const CSS = `
     /* Sprite Box */
     .sprite-box {
         display: inline-block;
-        background-image: url('${require('../assets/images/Marques_Transparent.png')}');
         background-repeat: no-repeat;
         filter: grayscale(100%) brightness(200%) opacity(0.5);
         transition: filter 0.3s ease, transform 0.3s ease;
@@ -130,6 +132,63 @@ const CSS = `
         transform: scale(1.05);
     }
 `;
+
+function AnimatedNumber({ value }: { value: string | number }) {
+    const valStr = String(value);
+    const match = valStr.match(/(\d+\.?\d*)/);
+    const numericPart = match ? parseFloat(match[0]) : 0;
+    const suffix = valStr.replace(String(numericPart), '');
+    const decimalPlaces = match?.[1].includes('.') ? match[1].split('.')[1].length : 0;
+
+    const [count, setCount] = useState(0);
+    const [isVisible, setIsVisible] = useState(false);
+    const elementRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (Platform.OS !== 'web') {
+            setIsVisible(true);
+            return;
+        }
+
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+                setIsVisible(true);
+                observer.disconnect();
+            }
+        }, { threshold: 0.2 });
+
+        if (elementRef.current) observer.observe(elementRef.current);
+        return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        if (!isVisible) return;
+
+        let startTime: number | null = null;
+        const duration = 2400; // Smooth 2.4s count
+
+        const animate = (timestamp: number) => {
+            if (!startTime) startTime = timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            
+            // Premium easeOutExpo function
+            const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+            const current = ease * numericPart;
+            
+            setCount(current);
+            if (progress < 1) requestAnimationFrame(animate);
+        };
+
+        requestAnimationFrame(animate);
+    }, [isVisible, numericPart]);
+
+    return (
+        <div ref={elementRef}>
+            {count.toFixed(decimalPlaces)}
+            {suffix}
+        </div>
+    );
+}
 
 function GoldDivider() {
     return (
@@ -166,15 +225,18 @@ const LOGO_COORDS = [
 ];
 
 function CustomMarqueeLogos() {
+    const asset = require('../assets/images/Marques_Transparent.png');
+    const bgUrl = typeof asset === 'string' ? asset : (asset.uri || asset.default || '');
+
     return (
         <section style={{ padding: '20px 0', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', overflow: 'hidden' }}>
             <div className="marquee-track" style={{ gap: 60, padding: '10px 0' }}>
-                {[...Array(2)].flatMap(() =>
+                {[...Array(2)].flatMap((_, j) =>
                     LOGO_COORDS.map((coord, i) => {
                         const scale = DISPLAY_WIDTH / coord.w;
                         const targetHeight = coord.h * scale;
                         return (
-                            <div key={i + '_' + Math.random()} style={{
+                            <div key={`${j}-${i}`} style={{
                                 width: DISPLAY_WIDTH,
                                 height: 80, // fixed container height
                                 display: 'flex',
@@ -184,6 +246,7 @@ function CustomMarqueeLogos() {
                                 <div className="sprite-box" style={{
                                     width: DISPLAY_WIDTH,
                                     height: targetHeight,
+                                    backgroundImage: `url(${bgUrl})`,
                                     backgroundSize: `${1536 * scale}px ${1024 * scale}px`,
                                     backgroundPosition: `-${coord.x * scale}px -${coord.y * scale}px`
                                 }} />
@@ -205,13 +268,6 @@ const FEATURES = [
     { icon: Layers, label: 'Modular Platform', copy: 'Composable microservice modules that integrate seamlessly into your existing enterprise software ecosystem.', ring: '#fb923c', glow: 'rgba(251,146,60,0.12)' },
 ];
 
-const METRICS = [
-    { value: '500+', unit: '', label: 'Active Teams' },
-    { value: '99.99', unit: '%', label: 'SLA Uptime' },
-    { value: '2.4', unit: 's', label: 'Avg Report Time' },
-    { value: '5.2', unit: 'B', label: 'Data Points / Mo' },
-];
-
 const PROGRESS = [
     { label: 'Shelf Coverage', value: 94, color: COLOR.gold },
     { label: 'Team Presence', value: 78, color: COLOR.violet },
@@ -220,20 +276,40 @@ const PROGRESS = [
 ];
 
 export default function UniversalLandingPage() {
-    if (Platform.OS !== 'web') {
-        return <Redirect href="/indexMobile" />;
-    }
-
     const router = useRouter();
+    const [publicStats, setPublicStats] = useState<PublicStats | null>(null);
+
+    useEffect(() => {
+        StatsService.getPublicStats().then(setPublicStats);
+    }, []);
+
+    const METRICS = [
+        { value: publicStats?.teams || '120+', unit: '', label: 'Active Staff' },
+        { value: '99.9', unit: '%', label: 'SLA Uptime' },
+        { value: publicStats?.reports || '5.2K+', unit: '', label: 'Daily Reports' },
+        { value: publicStats?.data_points || '18K+', unit: '', label: 'Data Points' },
+    ];
+
     const [scrollY, setScrollY] = useState(0);
 
     useEffect(() => {
+        if (Platform.OS !== 'web') return;
         const fn = () => setScrollY(window.scrollY);
         window.addEventListener('scroll', fn, { passive: true });
         return () => window.removeEventListener('scroll', fn);
     }, []);
 
-    const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    if (Platform.OS !== 'web') {
+        return <Redirect href="/indexMobile" />;
+    }
+
+    const scrollTo = (id: string) => {
+        if (typeof document === 'undefined') return;
+        const el = document.getElementById(id);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: id === 'logos' ? 'center' : 'start' });
+        }
+    };
     const navPinned = scrollY > 30;
 
     const S = {
@@ -241,9 +317,9 @@ export default function UniversalLandingPage() {
         navWrap: { position: 'fixed' as const, top: 0, left: 0, right: 0, zIndex: 100, padding: navPinned ? '12px 0' : '24px 0', transition: 'padding 0.6s ease' },
         navInner: { maxWidth: 1400, margin: '0 auto', padding: '0 32px' },
         navBox: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 24px', borderRadius: 20, background: navPinned ? 'rgba(0,0,0,0.7)' : 'transparent', backdropFilter: navPinned ? 'blur(24px) saturate(180%)' : 'none', border: navPinned ? '1px solid rgba(255,255,255,0.07)' : '1px solid transparent', boxShadow: navPinned ? '0 8px 40px rgba(0,0,0,0.5)' : 'none', transition: 'all 0.6s cubic-bezier(0.16,1,0.3,1)' },
-        logo: { display: 'flex', alignItems: 'center', gap: 10 },
-        logoBadge: { width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg, #d4a84b, #b08c3c)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(212,168,75,0.4)' },
-        logoText: { fontWeight: 900, fontSize: 20, letterSpacing: '-0.04em' },
+        logo: { display: 'flex', alignItems: 'center', gap: 12 },
+        logoBadge: { width: 44, height: 44, borderRadius: 14, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(212,168,75,0.4)', background: COLOR.bg },
+        logoText: { fontWeight: 900, fontSize: 22, letterSpacing: '-0.04em' },
         navLinks: { display: 'flex', gap: 2, alignItems: 'center' },
         navActions: { display: 'flex', alignItems: 'center', gap: 12 },
         navSignIn: { background: 'none', border: 'none', color: COLOR.textMuted, fontWeight: 700, fontSize: 13, cursor: 'pointer', padding: '8px 16px', fontFamily: 'inherit', transition: 'color 0.2s' },
@@ -263,7 +339,7 @@ export default function UniversalLandingPage() {
         featSection: { padding: '160px 40px', maxWidth: 1400, margin: '0 auto' },
         featHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 80, gap: 40, flexWrap: 'wrap' as const },
         featH2: { fontWeight: 900, fontSize: 'clamp(2.8rem, 5vw, 5rem)', letterSpacing: '-0.04em', lineHeight: 0.95 },
-        featGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 },
+        featureGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 },
         featCard: { padding: '44px 36px', borderRadius: 28, background: 'linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.07)', cursor: 'default', overflow: 'hidden', position: 'relative' as const },
         intelSection: { padding: '160px 40px', background: '#040405', position: 'relative' as const, overflow: 'hidden' },
         intelInner: { maxWidth: 1400, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 100, flexWrap: 'wrap' as const },
@@ -289,7 +365,12 @@ export default function UniversalLandingPage() {
                 <div style={S.navInner}>
                     <div style={S.navBox}>
                         <div style={S.logo}>
-                            <div style={S.logoBadge}><Command size={20} color="#000" strokeWidth={2.5} /></div>
+                            <div style={S.logoBadge}>
+                                <img src={(() => {
+                                    const a = require('../assets/images/index.png');
+                                    return typeof a === 'string' ? a : (a.uri || a.default || '');
+                                })()} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Logo" />
+                            </div>
                             <span style={S.logoText}>Field<span className="gold-text">Force</span></span>
                         </div>
                         <div style={S.navLinks}>
@@ -326,7 +407,7 @@ export default function UniversalLandingPage() {
                             With Precision.
                         </h1>
                         <p className="reveal" style={{ ...S.heroP, animationDelay: '0.25s' }}>
-                            Real-time merchandising coordination, GPS-grade location intelligence, and instant event synthesis powering the world's most agile field forces.
+                            Real-time merchandising coordination, GPS-grade location intelligence, and instant event synthesis powering the world&apos;s most agile field forces.
                         </p>
                         <div className="reveal" style={{ ...S.heroCtas, animationDelay: '0.35s' }}>
                             <button className="cta-btn cta-btn-primary" onClick={() => router.push('/login')}>Launch Platform <ArrowRight size={18} /></button>
@@ -335,7 +416,9 @@ export default function UniversalLandingPage() {
                     <div className="reveal" style={{ ...S.metricsRow, animationDelay: '0.45s' }}>
                         {METRICS.map((m, i) => (
                             <div key={i} style={S.metricCard}>
-                                <div className="gold-text" style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.04em' }}>{m.value}<span style={{ fontSize: 20 }}>{m.unit}</span></div>
+                                <div className="gold-text" style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.04em' }}>
+                                    <AnimatedNumber value={m.value} />
+                                </div>
                                 <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.25em', textTransform: 'uppercase', color: COLOR.textMuted, marginTop: 6 }}>{m.label}</div>
                             </div>
                         ))}
@@ -353,16 +436,21 @@ export default function UniversalLandingPage() {
             {/* FEATURES */}
             <section id="capabilities">
                 <div style={S.featSection}>
-                    <div style={S.featHeader}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                            <SectionEyebrow>Core Capabilities</SectionEyebrow>
-                            <h2 style={S.featH2}>Built for<br /><span className="gold-text" style={S.heroItalic}>exceptional</span><br />operations.</h2>
-                        </div>
-                        <p style={{ maxWidth: 400, color: COLOR.textMuted, fontSize: 17, lineHeight: 1.7, fontWeight: 300 }}>
+                    <SectionEyebrow>Core Capabilities</SectionEyebrow>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 24, marginBottom: 80, gap: 100 }}>
+                        <h2 className="reveal" style={{ fontWeight: 900, fontSize: '5rem', letterSpacing: '-0.04em', lineHeight: 1, margin: 0 }}>
+                            Built for<br />
+                            <span className="gold-text" style={{ fontFamily: "'DM Serif Display', serif", fontStyle: 'italic', fontWeight: 700 }}>exceptional</span><br />
+                            operations.
+                        </h2>
+                        
+                        <p style={{ color: COLOR.textMuted, fontSize: 18, lineHeight: 1.7, fontWeight: 400, maxWidth: 380, margin: 0, paddingBottom: 20 }}>
                             Every module engineered around one principle: field intelligence should be as sophisticated as the teams deploying it.
                         </p>
                     </div>
-                    <div style={S.featGrid}>
+
+                    <div style={S.featureGrid}>
                         {FEATURES.map((f, i) => (
                             <div key={i} className="feat-card" style={{ ...S.featCard, boxShadow: `0 0 40px -12px ${f.ring}00` }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
@@ -402,17 +490,23 @@ export default function UniversalLandingPage() {
                             <div style={S.deviceWrap}>
                                 <div style={S.deviceInner}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                        <div><div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: COLOR.gold }}>Live Operation</div><div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>Store #4482</div></div>
-                                        <div style={{ padding: '6px 14px', borderRadius: 100, background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', fontSize: 10, fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase', color: COLOR.emerald }}>● Active</div>
+                                        <div><div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: COLOR.gold }}>Live Operation</div><div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>Fleet Status</div></div>
                                     </div>
-                                    {PROGRESS.map((row, i) => (
-                                        <div key={i}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}><span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>{row.label}</span><span style={{ fontSize: 12, fontWeight: 800, color: row.color }}>{row.value}%</span></div>
-                                            <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 100, overflow: 'hidden' }}><div style={{ height: '100%', borderRadius: 100, width: `${row.value}%`, background: row.color, boxShadow: `0 0 12px ${row.color}80` }} /></div>
-                                        </div>
-                                    ))}
-                                    <div style={{ paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)' }}>Ops: 124 Active</span><span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: COLOR.gold }}>36.80°N</span>
+                                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        {PROGRESS.map((p, i) => (
+                                            <div key={i}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)' }}>{p.label}</span>
+                                                    <span style={{ fontSize: 11, fontWeight: 900, color: p.color }}>{p.value}%</span>
+                                                </div>
+                                                <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.03)', overflow: 'hidden' }}>
+                                                    <div style={{ height: '100%', width: `${p.value}%`, background: p.color, boxShadow: `0 0 10px ${p.color}40` }} />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
+                                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)' }}>Ops: {publicStats?.teams || '120+'}</span><span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: COLOR.gold }}>{publicStats?.stores || '48+'} Cities</span>
                                     </div>
                                 </div>
                             </div>
@@ -445,7 +539,12 @@ export default function UniversalLandingPage() {
                 <div style={S.footerGrid}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div style={{ ...S.logoBadge, width: 34, height: 34 }}><Command size={17} color="#000" strokeWidth={2.5} /></div>
+                            <div style={{ ...S.logoBadge, width: 34, height: 34 }}>
+                                <img src={(() => {
+                                    const a = require('../assets/images/index.png');
+                                    return typeof a === 'string' ? a : (a.uri || a.default || '');
+                                })()} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Logo" />
+                            </div>
                             <span style={{ fontWeight: 900, fontSize: 18, letterSpacing: '-0.03em' }}>FieldForce</span>
                         </div>
                         <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, lineHeight: 1.75, fontWeight: 300, maxWidth: 260 }}>Architectural-grade infrastructure for elite field operations.</p>

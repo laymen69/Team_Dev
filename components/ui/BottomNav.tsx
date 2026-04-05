@@ -35,12 +35,12 @@ const ITEM_COLORS = [
     { from: '#f43f5e', to: '#000000ff' }, // Rose
 ];
 
-const NavItem = React.memo(({ item, isActive, index, onPress }: {
+const NavItem = React.memo(function NavItem({ item, isActive, index, onPress }: {
     item: NavItemType;
     isActive: boolean;
     index: number;
     onPress: () => void;
-}) => {
+}) {
     const { user } = useAuth();
     const { theme } = useTheme();
     const isDark = theme === 'dark';

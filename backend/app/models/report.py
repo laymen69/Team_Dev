@@ -1,33 +1,34 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
-from sqlalchemy.orm import relationship
+from typing import Optional
+from sqlalchemy import Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from app.db.session import Base
+from datetime import datetime
 
 class Report(Base):
     __tablename__ = "reports"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    notes = Column(Text, nullable=True)
-    type = Column(String, default="Before/After")  # Out of Stock, Facing Change, etc.
-    status = Column(String, default="pending")  # pending, approved, rejected
-    rejection_reason = Column(Text, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String, index=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    type: Mapped[str] = mapped_column(String, default="Before/After")
+    status: Mapped[str] = mapped_column(String, default="pending")
+    rejection_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
-    # visit stats if applicable
-    visits_planned = Column(Integer, default=0)
-    visits_completed = Column(Integer, default=0)
+    visits_planned: Mapped[int] = mapped_column(Integer, default=0)
+    visits_completed: Mapped[int] = mapped_column(Integer, default=0)
     
-    before_image = Column(String, nullable=True)
-    after_image = Column(String, nullable=True)
+    before_image: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    after_image: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     
-    user_id = Column(Integer, ForeignKey("users.id"))
-    gms_id = Column(Integer, ForeignKey("gms.id"), nullable=True)
-    visit_id = Column(Integer, ForeignKey("visits.id"), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
+    gms_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("gms.id"), nullable=True)
+    visit_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("visits.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    user = relationship("User", back_populates="reports")
-    gms = relationship("GMS")
-    visit = relationship("Visit", back_populates="reports", overlaps="reports")
+    user: Mapped["User"] = relationship("User", back_populates="reports")
+    gms: Mapped[Optional["GMS"]] = relationship("GMS", back_populates="reports")
+    visit: Mapped[Optional["Visit"]] = relationship("Visit", back_populates="reports")
 
     @property
     def merchandiser_name(self) -> str:

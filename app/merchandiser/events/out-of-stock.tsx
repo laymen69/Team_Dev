@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     FlatList,
     Image,
     KeyboardAvoidingView,
@@ -25,7 +26,7 @@ import { useToast } from '../../../context/ToastContext';
 import { Fonts } from '../../../hooks/useFonts';
 import { Article, ArticleService } from '../../../services/article.service';
 import { ReportService } from '../../../services/report.service';
-import { ActivityIndicator } from 'react-native';
+
 
 export default function OutOfStockEvent() {
     const router = useRouter();

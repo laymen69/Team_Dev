@@ -122,7 +122,7 @@ export default function WebLogin({
         leftContent: { position: 'relative' as const, zIndex: 10, padding: '60px 80px', height: '100%', overflowY: 'auto' as const },
 
         brandRow: { display: 'flex', alignItems: 'center', gap: 16, marginBottom: 60 },
-        logoBox: { width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg, #d4a84b, #b08c3c)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 30px rgba(212,168,75,0.4)' },
+        logoBox: { width: 44, height: 44, borderRadius: 14, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(212,168,75,0.4)', background: COLOR.bg },
 
         h1: { fontWeight: 900, fontSize: '3rem', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 20 },
         italic: { fontFamily: "'DM Serif Display', Georgia, serif", fontStyle: 'italic', fontWeight: 700 },
@@ -163,11 +163,14 @@ export default function WebLogin({
 
                     <div style={S.brandRow}>
                         <div style={S.logoBox}>
-                            <Ionicons name="scan" size={28} color="#000" />
+                            <img src={(() => {
+                                const a = require('../../assets/images/login.png');
+                                return typeof a === 'string' ? a : (a.uri || a.default || '');
+                            })()} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Logo" />
                         </div>
                         <div>
-                            <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>FieldForce</div>
-                            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: COLOR.gold, marginTop: 4 }}>Enterprise Setup</div>
+                            <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.02em' }}>FieldForce</div>
+                            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: COLOR.gold, marginTop: 4 }}>Enterprise Setup</div>
                         </div>
                     </div>
 
@@ -245,12 +248,15 @@ export default function WebLogin({
                     </div>
 
                     <button className="google-btn" onClick={handleGoogleSignIn}>
-                        <Image source={require('../../assets/images/google_logo.png')} style={{ width: 18, height: 18 }} />
+                        <img src={(() => {
+                            const a = require('../../assets/images/google_logo.png');
+                            return typeof a === 'string' ? a : (a.uri || a.default || '');
+                        })()} style={{ width: 18, height: 18 }} alt="Google" />
                         Continue with Enterprise SSO
                     </button>
 
                     <div style={{ textAlign: 'center', marginTop: 32 }}>
-                        <span style={{ color: COLOR.textMuted, fontSize: 14 }}>Don't have clearance? </span>
+                        <span style={{ color: COLOR.textMuted, fontSize: 14 }}>Don&apos;t have clearance? </span>
                         <span className="link-text" onClick={() => router.push('/signup')}>Issue Request</span>
                     </div>
                 </div>

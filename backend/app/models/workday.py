@@ -1,23 +1,29 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean
-from sqlalchemy.orm import relationship
+from typing import List, Optional
+from sqlalchemy import Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from app.db.session import Base
+from datetime import datetime
 
 class Workday(Base):
     __tablename__ = "workdays"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    status = Column(String, default="active")  # active, completed
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
+    status: Mapped[str] = mapped_column(String, default="active")  # active, completed
     
-    start_time = Column(DateTime(timezone=True), server_default=func.now())
-    end_time = Column(DateTime(timezone=True), nullable=True)
+    start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    end_time: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     
-    start_lat = Column(Float, nullable=True)
-    start_lng = Column(Float, nullable=True)
-    end_lat = Column(Float, nullable=True)
-    end_lng = Column(Float, nullable=True)
+    start_lat: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    start_lng: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    end_lat: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    end_lng: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
-    user = relationship("User")
-    visits = relationship("Visit", back_populates="workday")
-    location_logs = relationship("LocationLog", back_populates="workday")
+    user: Mapped["User"] = relationship("User", back_populates="workdays")
+    visits: Mapped[List["Visit"]] = relationship(
+        "Visit", back_populates="workday", cascade="all, delete-orphan"
+    )
+    location_logs: Mapped[List["LocationLog"]] = relationship(
+        "LocationLog", back_populates="workday", cascade="all, delete-orphan"
+    )

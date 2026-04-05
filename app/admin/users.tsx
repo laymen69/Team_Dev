@@ -470,7 +470,7 @@ export default function AdminUsersPage() {
                                         style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
                                         value={newUser.address}
                                         onChangeText={(t) => setNewUser({ ...newUser, address: t })}
-                                        placeholder="123 Street Name, City, State"
+                                        placeholder="Where exactly in Tunisia?"
                                         placeholderTextColor={colors.textMuted}
                                     />
                                 </View>
@@ -731,7 +731,7 @@ export default function AdminUsersPage() {
                                     style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
                                     value={newUser.address}
                                     onChangeText={(t) => setNewUser({ ...newUser, address: t })}
-                                    placeholder="123 Street Name, City"
+                                    placeholder="Where exactly in Tunisia?"
                                     placeholderTextColor={colors.textMuted}
                                 />
                             </View>

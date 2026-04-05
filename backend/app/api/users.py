@@ -5,7 +5,6 @@ from app.api.deps import get_db, get_current_user
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
 from app.core.security import get_password_hash
-from app.core.config import settings
 import base64
 import os
 import uuid

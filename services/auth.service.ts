@@ -113,7 +113,8 @@ export const AuthService = {
             }
         } catch (error: any) {
             console.error('[Auth] Login error:', error);
-            const message = error.response?.data?.detail || error.message || 'Login failed';
+            const detail = error.response?.data?.detail;
+            const message = typeof detail === 'string' ? detail : (error.message || 'Login failed');
             throw new Error(message);
         }
     },

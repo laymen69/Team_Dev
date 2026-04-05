@@ -181,6 +181,34 @@ function FloatingCard({ source, initialX, initialY, delay }: FloatingCardProps) 
   );
 }
 
+function ShelfItem({ src, i }: { src: any; i: number }) {
+  const bob = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bob, {
+          toValue: -8,
+          duration: 1200 + i * 150,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(bob, {
+          toValue: 0,
+          duration: 1200 + i * 150,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [bob, i]);
+
+  return (
+    <Animated.View style={{ transform: [{ translateY: bob }] }}>
+      <Image source={src} style={styles.shelfProduct} resizeMode="contain" />
+    </Animated.View>
+  );
+}
+
 /* ─── Shelf row (6 products lined up at the bottom) ─────────────────── */
 function ShelfRow() {
   const shelf = PRODUCT_IMAGES;
@@ -188,33 +216,9 @@ function ShelfRow() {
     <View style={styles.shelf}>
       <View style={styles.shelfRail} />
       <View style={styles.shelfItems}>
-        {shelf.map((src, i) => {
-          const bob = useRef(new Animated.Value(0)).current;
-          useEffect(() => {
-            Animated.loop(
-              Animated.sequence([
-                Animated.timing(bob, {
-                  toValue: -8,
-                  duration: 1200 + i * 150,
-                  easing: Easing.inOut(Easing.sin),
-                  useNativeDriver: true,
-                }),
-                Animated.timing(bob, {
-                  toValue: 0,
-                  duration: 1200 + i * 150,
-                  easing: Easing.inOut(Easing.sin),
-                  useNativeDriver: true,
-                }),
-              ])
-            ).start();
-          }, []);
-
-          return (
-            <Animated.View key={i} style={{ transform: [{ translateY: bob }] }}>
-              <Image source={src} style={styles.shelfProduct} resizeMode="contain" />
-            </Animated.View>
-          );
-        })}
+        {shelf.map((src, i) => (
+          <ShelfItem key={i} src={src} i={i} />
+        ))}
       </View>
     </View>
   );

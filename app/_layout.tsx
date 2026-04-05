@@ -1,3 +1,5 @@
+import './_web-polyfill';
+import { Platform, Appearance, Dimensions, AppState, DeviceEventEmitter, NativeModules, Keyboard, BackHandler } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
@@ -5,14 +7,13 @@ import { Stack } from 'expo-router/stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { ToastProvider } from '../context/ToastContext';
 import { usePermissions } from '../hooks/usePermissions';
-
 import { useAppFonts } from '../hooks/useFonts';
+import { NotificationProvider } from '../context/NotificationContext';
 
 // Configure notification behavior — native only (web has no NativeEventEmitter)
 if (Platform.OS !== 'web') {
@@ -31,8 +32,6 @@ if (Platform.OS !== 'web') {
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
-import { NotificationProvider } from '../context/NotificationContext';
-
 export default function RootLayout() {
   const { fontsLoaded: appFontsLoaded } = useAppFonts();
   const [iconsLoaded, iconError] = useFonts({
@@ -41,59 +40,35 @@ export default function RootLayout() {
 
   const allLoaded = appFontsLoaded && iconsLoaded;
 
-  // Request system permissions on mount
-  usePermissions();
-
   useEffect(() => {
-    if (allLoaded || iconError) {
+    if (allLoaded) {
       SplashScreen.hideAsync();
     }
-  }, [allLoaded, iconError]);
+  }, [allLoaded]);
 
-  if (!allLoaded && !iconError) {
+  if (!allLoaded) {
     return null;
   }
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <ToastProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              <RootLayoutContent />
-            </NotificationProvider>
-          </AuthProvider>
-        </ToastProvider>
-      </ThemeProvider>
+      <AuthProvider>
+        <NotificationProvider>
+          <ThemeProvider>
+            <ToastProvider>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="login" />
+                <Stack.Screen name="signup" />
+                <Stack.Screen name="merchandiser" />
+                <Stack.Screen name="supervisor" />
+                <Stack.Screen name="admin" />
+              </Stack>
+              <StatusBar style="auto" />
+            </ToastProvider>
+          </ThemeProvider>
+        </NotificationProvider>
+      </AuthProvider>
     </SafeAreaProvider>
-  );
-}
-
-function RootLayoutContent() {
-  const { theme } = useTheme();
-
-  return (
-    <>
-      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          animation: 'fade',
-          animationDuration: 45,
-          contentStyle: { backgroundColor: theme === 'dark' ? '#1e293b' : '#f8f9fa' }
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="indexMobile" />
-        <Stack.Screen name="signup" />
-        <Stack.Screen name="forgot-password" />
-        <Stack.Screen name="about" />
-        <Stack.Screen name="admin" />
-        <Stack.Screen name="supervisor" />
-        <Stack.Screen name="merchandiser" />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-    </>
   );
 }

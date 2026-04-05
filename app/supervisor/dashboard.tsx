@@ -22,6 +22,7 @@ import { DesignTokens, getColors } from '../../constants/designSystem';
 import { SUPERVISOR_NAV_ITEMS } from '../../constants/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { StatsService, SupervisorStats } from '../../services/stats.service';
 
 export default function SupervisorDashboard() {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function SupervisorDashboard() {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [stats, setStats] = useState<SupervisorStats | null>(null);
 
   const colors = getColors(theme);
 
@@ -39,10 +41,15 @@ export default function SupervisorDashboard() {
 
   const loadData = async () => {
     if (!refreshing) setLoading(true);
-    // Simulate data fetch
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setLoading(false);
-    setRefreshing(false);
+    try {
+      const dbStats = await StatsService.getSupervisorStats();
+      if (dbStats) setStats(dbStats);
+    } catch (err) {
+      console.error('Supervisor load data error:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   const onRefresh = () => {
@@ -130,18 +137,18 @@ export default function SupervisorDashboard() {
             <>
               <StatCard
                 label="ACTIVE NOW"
-                value="12"
+                value={stats?.active_teams || '—'}
                 icon="people"
                 color={colors.primary}
-                trend="85% of Team"
+                trend="Real-time"
                 trendUp
               />
               <StatCard
                 label="ALERTS"
-                value="03"
+                value={stats?.pending_reports || '—'}
                 icon="warning"
                 color={colors.danger}
-                trend="Needs Action"
+                trend={stats?.pending_reports ? "Needs Action" : "All Clear"}
                 onPress={() => router.push('/supervisor/notifications')}
               />
             </>
@@ -160,13 +167,13 @@ export default function SupervisorDashboard() {
             <View style={styles.progressStatItem}>
               <Ionicons name="storefront-outline" size={16} color={colors.textSecondary} />
               <Text style={[styles.progressStatText, { color: colors.textSecondary }]}>
-                156 / 240 Stores Visited
+                {stats?.assigned_stores || '—'} Stores Under Watch
               </Text>
             </View>
             <View style={styles.progressStatItem}>
               <Ionicons name="documents-outline" size={16} color={colors.textSecondary} />
               <Text style={[styles.progressStatText, { color: colors.textSecondary }]}>
-                84 Pending Reports
+                {stats?.pending_reports || '—'} Pending Reports
               </Text>
             </View>
           </View>

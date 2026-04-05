@@ -8,8 +8,8 @@ class ObjectiveBase(BaseModel):
     target: int = 0
     current: int = 0
     target_visits: int = 0
-    month: int
-    year: int
+    month: int = 1
+    year: int = 2024
 
 class ObjectiveCreate(ObjectiveBase):
     pass

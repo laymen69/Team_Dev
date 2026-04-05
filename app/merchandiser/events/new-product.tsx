@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     FlatList,
     KeyboardAvoidingView,
     Platform,
@@ -9,7 +10,7 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../../components/ui/Button';
@@ -22,7 +23,7 @@ import { useToast } from '../../../context/ToastContext';
 import { Fonts } from '../../../hooks/useFonts';
 import { Article, ArticleService } from '../../../services/article.service';
 import { ReportService } from '../../../services/report.service';
-import { ActivityIndicator } from 'react-native';
+
 
 export default function NewProductEvent() {
     const router = useRouter();

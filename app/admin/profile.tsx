@@ -29,6 +29,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { Fonts } from '../../hooks/useFonts';
 import { UserService, UserUpdateData } from '../../services/user.service';
 import { User } from '../../types/auth';
+import { StatsService, AdminStats } from '../../services/stats.service';
 
 const ProfileHeader = ({ user, colors, onEdit }: { user: any, colors: any, onEdit: () => void }) => {
   const initials = user ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() : 'AD';
@@ -58,7 +59,7 @@ const ProfileHeader = ({ user, colors, onEdit }: { user: any, colors: any, onEdi
             </View>
           </View>
           <TouchableOpacity onPress={onEdit} style={[styles.premiumEditBtn, { backgroundColor: colors.primary, borderColor: colors.background }]}>
-            <Feather name="camera" size={14} color="#fff" />
+            <Feather name="edit-2" size={14} color="#fff" />
           </TouchableOpacity>
         </View>
 
@@ -90,6 +91,17 @@ const ProfileHeader = ({ user, colors, onEdit }: { user: any, colors: any, onEdi
               </View>
             </View>
           )}
+          {user?.address && (
+            <View style={[styles.contactItem, { marginTop: 16 }]}>
+              <View style={[styles.contactIcon, { backgroundColor: colors.primary + '20' }]}>
+                <Feather name="map-pin" size={14} color={colors.primary} />
+              </View>
+              <View>
+                <Text style={[styles.contactLabel, { color: colors.textMuted }]}>Address</Text>
+                <Text style={[styles.contactItemText, { color: colors.text }]}>{user.address}</Text>
+              </View>
+            </View>
+          )}
         </View>
       </View>
     </View>
@@ -117,11 +129,11 @@ const MenuItem = ({ item, isLast, colors, router }: any) => (
       <Feather name={item.icon} size={18} color={colors.primary} />
     </View>
     <Text style={[styles.menuLabel, { color: colors.text }]}>{item.label}</Text>
-    {item.badge && (
+    {item.badge ? (
       <View style={[styles.badge, { backgroundColor: colors.danger }]}>
         <Text style={styles.badgeText}>{item.badge}</Text>
       </View>
-    )}
+    ) : null}
     <Feather name="chevron-right" size={18} color={colors.textMuted} />
   </TouchableOpacity>
 );
@@ -146,6 +158,7 @@ export default function Profile() {
   const [profileUser, setProfileUser] = useState<User | null>(user);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
 
   const fetchProfile = async () => {
     try {
@@ -158,8 +171,14 @@ export default function Profile() {
     }
   };
 
+  const fetchStats = async () => {
+    const stats = await StatsService.getAdminStats();
+    if (stats) setAdminStats(stats);
+  };
+
   useEffect(() => {
     fetchProfile();
+    fetchStats();
   }, []);
 
   const handleUpdateProfile = async (data: any) => {
@@ -171,6 +190,7 @@ export default function Profile() {
         first_name: data.firstName,
         last_name: data.lastName,
         phone: data.phone,
+        address: data.address,
         profile_zone: data.profileZone,
         profile_image: data.image,
       };
@@ -253,6 +273,15 @@ export default function Profile() {
                     <Text style={{ fontSize: 14, color: colors.text, fontWeight: '600' }}>{profileUser?.phone || '—'}</Text>
                   </View>
                 </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+                    <Feather name="map-pin" size={16} color={colors.primary} />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 12, color: colors.textMuted }}>ADDRESS</Text>
+                    <Text style={{ fontSize: 14, color: colors.text, fontWeight: '600' }}>{profileUser?.address || '—'}</Text>
+                  </View>
+                </View>
               </View>
             </Card>
           </View>
@@ -331,6 +360,7 @@ export default function Profile() {
             email: profileUser?.email || user?.email || '',
             role: profileUser?.role || user?.role || 'admin',
             phone: profileUser?.phone || user?.phone || '',
+            address: profileUser?.address || user?.address || '',
             profileZone: profileUser?.profileZone || user?.profileZone || '',
             profileImage: profileUser?.profileImage || user?.profileImage || null,
           }}
@@ -342,7 +372,12 @@ export default function Profile() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <Header title="Profile" subtitle="Account Settings" showBack />
+      <Header
+        title="Profile"
+        showBack
+        rightIcon="create-outline"
+        onRightIconPress={() => setIsEditModalVisible(true)}
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.sectionHeaderWrap}>
@@ -352,8 +387,8 @@ export default function Profile() {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>OVERVIEW</Text>
           <View style={styles.statsRow}>
-            <StatCard icon="users" label="Users" value="124" color={colors.primary} colors={colors} />
-            <StatCard icon="shopping-cart" label="Stores" value="48" color={colors.success} colors={colors} />
+            <StatCard icon="users" label="Users" value={adminStats?.users || '—'} color={colors.primary} colors={colors} />
+            <StatCard icon="shopping-cart" label="Stores" value={adminStats?.stores || '—'} color={colors.success} colors={colors} />
           </View>
         </View>
 
@@ -379,7 +414,7 @@ export default function Profile() {
               <View style={[styles.menuIconContainerGlass, { backgroundColor: '#fbbf2420' }]}>
                 <Ionicons name={isDark ? "moon" : "sunny"} size={20} color="#fbbf24" />
               </View>
-              <Text style={[styles.menuLabel, { flex: 1, color: colors.text }]}>Dark Appearance</Text>
+              <Text style={[styles.menuLabel, { flex: 1, color: colors.text }]}>Dark Mode</Text>
               <Switch
                 value={isDark}
                 onValueChange={toggleTheme}
@@ -410,6 +445,7 @@ export default function Profile() {
             email: profileUser?.email || user?.email || '',
             role: profileUser?.role || user?.role || 'admin',
             phone: profileUser?.phone || user?.phone || '',
+            address: profileUser?.address || user?.address || '',
             profileZone: profileUser?.profileZone || user?.profileZone || '',
             profileImage: profileUser?.profileImage || user?.profileImage || null,
         }}

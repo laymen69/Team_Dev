@@ -227,7 +227,7 @@ export default function NotificationsPage() {
                                 <View style={[styles.empty, { padding: 80, backgroundColor: colors.surface, borderRadius: 24 }]}>
                                     <Ionicons name="notifications-off-outline" size={64} color={colors.textMuted} />
                                     <Text style={{ color: colors.textSecondary, marginTop: 16, fontSize: 18, fontWeight: '600' }}>No notifications found</Text>
-                                    <Text style={{ color: colors.textMuted, marginTop: 8 }}>You're all caught up!</Text>
+                                    <Text style={{ color: colors.textMuted, marginTop: 8 }}>You&apos;re all caught up!</Text>
                                 </View>
                             ) : (
                                 filteredNotifications.map(item => {

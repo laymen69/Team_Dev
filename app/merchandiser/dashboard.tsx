@@ -26,6 +26,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Fonts } from '../../hooks/useFonts';
 import { GMS, GMSService } from '../../services/gms.service';
+import { StatsService, MerchandiserStats } from '../../services/stats.service';
 import { LocationService, WorkdaySession } from '../../services/location.service';
 import { Objective, ObjectiveService } from '../../services/objective.service';
 
@@ -43,18 +44,21 @@ export default function MerchandiserDashboard() {
   const [objectives, setObjectives] = useState<Objective[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [stats, setStats] = useState<MerchandiserStats | null>(null);
 
   const colors = getColors(theme);
 
   const loadData = async () => {
     if (!refreshing) setLoading(true);
     try {
-      const [gmsData, objData] = await Promise.all([
+      const [gmsData, objData, dbStats] = await Promise.all([
         GMSService.getAll({ skip: 0, limit: 500 }),
-        ObjectiveService.getAll({ skip: 0, limit: 200 })
+        ObjectiveService.getAll({ skip: 0, limit: 200 }),
+        StatsService.getMerchandiserStats(),
       ]);
       setStores(gmsData);
       setObjectives(objData);
+      if (dbStats) setStats(dbStats);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
@@ -212,16 +216,18 @@ export default function MerchandiserDashboard() {
             <>
               <StatCard
                 label="STORES"
-                value={stores.length.toString()}
+                value={stats?.stores_assigned?.toString() || stores.length.toString()}
                 icon="storefront"
                 color={colors.primary}
+                trend="Assigned"
+                trendUp
               />
               <StatCard
-                label="PROGRESS"
-                value={`${Math.round(overallProgress * 100)}%`}
+                label="PERFORMANCE"
+                value={stats?.target_hit || '0%'}
                 icon="trending-up"
                 color={colors.success}
-                trend="Today"
+                trend="Score"
                 trendUp
               />
             </>
@@ -436,7 +442,7 @@ export default function MerchandiserDashboard() {
           {!loading && stores.length === 0 && (
             <View style={styles.emptyContainer}>
               <Ionicons name="map-outline" size={48} color={colors.border} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No stores on today's route.</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No stores on today&apos;s route.</Text>
             </View>
           )}
         </View>

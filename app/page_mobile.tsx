@@ -87,7 +87,7 @@ const GoldText = ({ children, style }: any) => {
     );
 };
 
-const RevealView = React.memo(({ children, delay = 0, style }: any) => {
+const RevealView = React.memo(function RevealView({ children, delay = 0, style }: any) {
     const anim = useRef(new Animated.Value(0)).current;
     const translateY = useRef(new Animated.Value(20)).current;
 
@@ -96,7 +96,7 @@ const RevealView = React.memo(({ children, delay = 0, style }: any) => {
             Animated.timing(anim, { toValue: 1, duration: 800, delay, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
             Animated.timing(translateY, { toValue: 0, duration: 800, delay, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
         ]).start();
-    }, []);
+    }, [anim, delay, translateY]);
 
     return (
         <Animated.View style={[style, { opacity: anim, transform: [{ translateY }] }]}>
@@ -105,7 +105,7 @@ const RevealView = React.memo(({ children, delay = 0, style }: any) => {
     );
 });
 
-const FloatingIcon = React.memo(({ children }: any) => {
+const FloatingIcon = React.memo(function FloatingIcon({ children }: any) {
     const anim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
@@ -115,7 +115,7 @@ const FloatingIcon = React.memo(({ children }: any) => {
                 Animated.timing(anim, { toValue: 0, duration: 3000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
             ])
         ).start();
-    }, []);
+    }, [anim]);
 
     const translateY = anim.interpolate({
         inputRange: [0, 1],

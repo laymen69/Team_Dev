@@ -1,0 +1,21 @@
+Running 17 checks on your project...
+15/17 checks passed. 2 checks failed. Possible issues detected:
+Use the --verbose flag to see more details about passed checks.
+
+Γ£û Check Expo config (app.json/ app.config.js) schema
+Errors validating asset fields in C:\Users\21626\pfe\app.json:
+ Field: icon - image should be square, but the file at './assets/images/apps.png' has dimensions 1752x1588.
+Advice:
+Resolve schema errors in your app config. Learn more: https://docs.expo.dev/workflow/configuration/
+
+Γ£û Validate packages against React Native Directory package metadata
+The following issues were found when validating your dependencies against React Native Directory:
+  Untested on New Architecture: react-native-background-actions, react-native-chart-kit, react-native-push-notification, react-native-sqlite-storage
+  Unmaintained: react-native-chart-kit, react-native-push-notification, react-native-sqlite-storage
+  No metadata available: leaflet, lucide-react, maplibre-gl, react-leaflet, react-native-vector-icons, three
+Advice:
+Use libraries that are actively maintained and support the New Architecture. Find alternative libraries with https://reactnative.directory.
+Add packages to expo.doctor.reactNativeDirectoryCheck.exclude in package.json to selectively skip validations, if the warning is not relevant.
+Update React Native Directory to include metadata for unknown packages. Alternatively, set expo.doctor.reactNativeDirectoryCheck.listUnknownPackages in package.json to false to skip warnings about packages with no metadata, if the warning is not relevant.
+
+2 checks failed, indicating possible issues with the project.

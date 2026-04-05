@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState, useRef } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View, Platform, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View, Alert, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Card } from '../../components/ui/Card';

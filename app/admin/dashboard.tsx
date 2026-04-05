@@ -31,6 +31,7 @@ import { GMSService } from '../../services/gms.service';
 import { Report, ReportService } from '../../services/report.service';
 import { UserService } from '../../services/user.service';
 import { User } from '../../types/auth';
+import { StatsService, AdminStats } from '../../services/stats.service';
 import PremiumGlowButton from '../button';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -134,8 +135,10 @@ const HoverStatCard = ({ title, value, icon, trend, trendUp, C, onPress }: any) 
   return (
     <View
       style={{ flex: 1, cursor: 'pointer' } as any}
-      // @ts-ignore
-      onMouseEnter={hoverIn} onMouseLeave={hoverOut}
+      {...{
+        onMouseEnter: hoverIn,
+        onMouseLeave: hoverOut
+      } as any}
     >
       <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={{ flex: 1 }}>
         <Animated.View style={[wSt.statCard, { backgroundColor: C.card, borderColor: C.border, transform: [{ scale }] }]}>
@@ -161,9 +164,10 @@ const HoverRow = ({ children, C }: any) => {
   const bg = useRef(new Animated.Value(0)).current;
   return (
     <View
-      // @ts-ignore
-      onMouseEnter={() => Animated.timing(bg, { toValue: 1, duration: 150, useNativeDriver: false }).start()}
-      onMouseLeave={() => Animated.timing(bg, { toValue: 0, duration: 150, useNativeDriver: false }).start()}
+      {...{
+        onMouseEnter: () => Animated.timing(bg, { toValue: 1, duration: 150, useNativeDriver: false }).start(),
+        onMouseLeave: () => Animated.timing(bg, { toValue: 0, duration: 150, useNativeDriver: false }).start()
+      } as any}
     >
       <Animated.View style={[
         wSt.tableRow, { borderBottomColor: C.border },
@@ -226,7 +230,7 @@ export default function AdminDashboard() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [allReports, setAllReports] = useState<Report[]>([]);
   const [allGms, setAllGms] = useState<any[]>([]);
-  const [stats, setStats] = useState({ users: 0, visits: 0, reports: 0, alerts: 0 });
+  const [stats, setStats] = useState<AdminStats | null>(null);
 
   // Chart & analytics period
   const [period, setPeriod] = useState<'weekly' | 'monthly'>('weekly');
@@ -246,21 +250,17 @@ export default function AdminDashboard() {
   const loadData = async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
     try {
-      const [users, reports, stores] = await Promise.all([
+      const [users, reports, stores, dbStats] = await Promise.all([
         UserService.getAll({ skip: 0, limit: 200 }),
         ReportService.getAll({ skip: 0, limit: 200 }),
         GMSService.getAll({ skip: 0, limit: 500 }),
+        StatsService.getAdminStats(),
       ]);
       if (!mounted.current) return;
       setAllUsers(users as unknown as User[]);
       setAllReports(reports);
       setAllGms(stores);
-      setStats({
-        users: users.length,
-        visits: stores.length,
-        reports: reports.length,
-        alerts: reports.filter(r => r.status === 'pending').length,
-      });
+      setStats(dbStats);
     } catch (e) {
       console.error(e);
     } finally {
@@ -381,10 +381,10 @@ export default function AdminDashboard() {
               ))
             ) : (
               <>
-                <HoverStatCard C={C} title="Total Staff" value={stats.users} icon="people-outline" trend="+12% this month" trendUp onPress={() => router.push('/admin/users')} />
-                <HoverStatCard C={C} title="Locations" value={stats.visits} icon="map-outline" trend="All time" trendUp onPress={() => router.push('/admin/gms')} />
-                <HoverStatCard C={C} title="Total Events" value={stats.reports} icon="document-text-outline" trend="+18% this week" trendUp onPress={() => router.push('/admin/before-after')} />
-                <HoverStatCard C={C} title="Pending Alerts" value={stats.alerts} icon="warning-outline" trend={`${pct(pending)}% of total`} trendUp={false} onPress={() => router.push('/admin/before-after')} />
+                <HoverStatCard C={C} title="Total Staff" value={stats?.users || '—'} icon="people-outline" trend="Real-time" trendUp onPress={() => router.push('/admin/users')} />
+                <HoverStatCard C={C} title="Locations" value={stats?.stores || '—'} icon="map-outline" trend="All time" trendUp onPress={() => router.push('/admin/gms')} />
+                <HoverStatCard C={C} title="Total Events" value={stats?.total_reports || '—'} icon="document-text-outline" trend="Live Sync" trendUp onPress={() => router.push('/admin/before-after')} />
+                <HoverStatCard C={C} title="Pending Alerts" value={stats?.pending_reports || '—'} icon="warning-outline" trend="Prioritized" trendUp={false} onPress={() => router.push('/admin/before-after')} />
               </>
             )}
           </View>
@@ -690,9 +690,9 @@ export default function AdminDashboard() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', padding: 8 }}>
-          <MobileStatCard label="Users" value={stats.users} icon="people" color={colors.primary} trend="Active" trendUp />
-          <MobileStatCard label="Reports" value={stats.reports} icon="document-text" color={colors.secondary} />
-          <MobileStatCard label="Alerts" value={stats.alerts} icon="warning" color={colors.warning} />
+          <MobileStatCard label="Users" value={stats?.users || '—'} icon="people" color={colors.primary} trend="Active" trendUp />
+          <MobileStatCard label="Reports" value={stats?.total_reports || '—'} icon="document-text" color={colors.secondary} />
+          <MobileStatCard label="Alerts" value={stats?.pending_reports || '—'} icon="warning" color={colors.warning} />
         </View>
         <SectionHeader title="Management" />
         <View style={{ paddingHorizontal: 16 }}>

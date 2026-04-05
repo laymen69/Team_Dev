@@ -27,6 +27,7 @@ interface EditProfileModalProps {
         firstName: string;
         lastName: string;
         phone: string;
+        address?: string;
         profileZone?: string;
         image?: string | null;
     }) => void;
@@ -36,6 +37,7 @@ interface EditProfileModalProps {
         email: string;
         role: UserRole;
         phone: string;
+        address?: string;
         profileZone?: string;
         profileImage?: string | null;
     };
@@ -55,6 +57,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     const [firstName, setFirstName] = useState(userData.firstName);
     const [lastName, setLastName] = useState(userData.lastName);
     const [phone, setPhone] = useState(userData.phone);
+    const [address, setAddress] = useState(userData.address || '');
     const [profileZone, setProfileZone] = useState(userData.profileZone || '');
     const [image, setImage] = useState<string | null>(getFullImageUrl(userData.profileImage) || null);
 
@@ -64,6 +67,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             setFirstName(userData.firstName);
             setLastName(userData.lastName);
             setPhone(userData.phone);
+            setAddress(userData.address || '');
             setProfileZone(userData.profileZone || '');
             setImage(getFullImageUrl(userData.profileImage) || null);
         }
@@ -162,6 +166,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             firstName,
             lastName,
             phone,
+            address,
             profileZone: userData.role !== 'admin' ? profileZone : undefined,
             image: image,
         });
@@ -263,6 +268,17 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                     onChangeText={setPhone}
                                     keyboardType="phone-pad"
                                     placeholder="+216 -- --- ---"
+                                    placeholderTextColor={colors.textMuted}
+                                />
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={[styles.label, { color: colors.textSecondary }]}>ADDRESS</Text>
+                                <TextInput
+                                    style={[styles.input, { color: Platform.OS === 'web' ? '#000' : colors.text, borderColor: colors.border, fontFamily: Fonts.body }]}
+                                    value={address}
+                                    onChangeText={setAddress}
+                                    placeholder="Where exactly in Tunisia?"
                                     placeholderTextColor={colors.textMuted}
                                 />
                             </View>

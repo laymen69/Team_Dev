@@ -26,6 +26,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { Fonts } from '../../hooks/useFonts';
 import { UserService, UserUpdateData } from '../../services/user.service';
 import { User } from '../../types/auth';
+import { StatsService, SupervisorStats } from '../../services/stats.service';
 
 const ProfileHeader = ({ user, colors, onEdit }: { user: any, colors: any, onEdit: () => void }) => {
   const initials = user ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() : 'SV';
@@ -55,7 +56,7 @@ const ProfileHeader = ({ user, colors, onEdit }: { user: any, colors: any, onEdi
             </View>
           </View>
           <TouchableOpacity onPress={onEdit} style={[styles.premiumEditBtn, { backgroundColor: colors.primary, borderColor: colors.background }]}>
-            <Feather name="camera" size={14} color="#fff" />
+            <Feather name="edit-2" size={14} color="#fff" />
           </TouchableOpacity>
         </View>
 
@@ -87,6 +88,17 @@ const ProfileHeader = ({ user, colors, onEdit }: { user: any, colors: any, onEdi
               </View>
             </View>
           )}
+          {user?.address && (
+            <View style={[styles.contactItem, { marginTop: 16 }]}>
+              <View style={[styles.contactIcon, { backgroundColor: colors.primary + '20' }]}>
+                <Feather name="map-pin" size={14} color={colors.primary} />
+              </View>
+              <View>
+                <Text style={[styles.contactLabel, { color: colors.textMuted }]}>Address</Text>
+                <Text style={[styles.contactItemText, { color: colors.text }]}>{user.address}</Text>
+              </View>
+            </View>
+          )}
         </View>
       </View>
     </View>
@@ -102,11 +114,11 @@ const MenuItem = ({ item, isLast, colors, router }: any) => (
       <Feather name={item.icon} size={18} color={colors.primary} />
     </View>
     <Text style={[styles.menuLabel, { color: colors.text }]}>{item.label}</Text>
-    {item.badge && (
+    {item.badge ? (
       <View style={[styles.badge, { backgroundColor: colors.danger }]}>
         <Text style={styles.badgeText}>{item.badge}</Text>
       </View>
-    )}
+    ) : null}
     <Feather name="chevron-right" size={18} color={colors.textMuted} />
   </TouchableOpacity>
 );
@@ -122,6 +134,7 @@ export default function Profile() {
   const [profileUser, setProfileUser] = useState<User | null>(user);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [supStats, setSupStats] = useState<SupervisorStats | null>(null);
 
   const menuItems = [
     { icon: 'bell', label: 'Notifications', badge: unreadCount, path: '/supervisor/notifications' },
@@ -142,8 +155,14 @@ export default function Profile() {
     }
   };
 
+  const fetchStats = async () => {
+    const stats = await StatsService.getSupervisorStats();
+    if (stats) setSupStats(stats);
+  };
+
   useEffect(() => {
     fetchProfile();
+    fetchStats();
   }, []);
 
   const handleUpdateProfile = async (data: any) => {
@@ -155,6 +174,7 @@ export default function Profile() {
         first_name: data.firstName,
         last_name: data.lastName,
         phone: data.phone,
+        address: data.address,
         profile_zone: data.profileZone,
         profile_image: data.image,
       };
@@ -178,11 +198,40 @@ export default function Profile() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <Header title="Profile" subtitle="Supervisor Account" showBack />
+      <Header
+        title="Profile"
+        rightIcon="create-outline"
+        onRightIconPress={() => setIsEditModalVisible(true)}
+        showBack
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.sectionHeaderWrap}>
           <ProfileHeader user={profileUser || user} colors={colors} onEdit={() => setIsEditModalVisible(true)} />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>OVERVIEW</Text>
+          <View style={styles.statsRow}>
+            <View style={[styles.statCardGlass, { backgroundColor: colors.surface + '60', borderColor: colors.border }]}>
+               <View style={[styles.statIconBox, { backgroundColor: colors.primary + '20' }]}>
+                 <Feather name="shopping-cart" size={18} color={colors.primary} />
+               </View>
+               <View style={{ flex: 1 }}>
+                   <Text style={[styles.statValue, { color: colors.text }]}>{supStats?.assigned_stores || '—'}</Text>
+                   <Text style={[styles.statLabel, { color: colors.textMuted }]}>Assigned Stores</Text>
+               </View>
+            </View>
+            <View style={[styles.statCardGlass, { backgroundColor: colors.surface + '60', borderColor: colors.border }]}>
+               <View style={[styles.statIconBox, { backgroundColor: colors.success + '20' }]}>
+                 <Feather name="users" size={18} color={colors.success} />
+               </View>
+               <View style={{ flex: 1 }}>
+                   <Text style={[styles.statValue, { color: colors.text }]}>{supStats?.active_teams || '—'}</Text>
+                   <Text style={[styles.statLabel, { color: colors.textMuted }]}>Active Agents</Text>
+               </View>
+            </View>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -207,7 +256,7 @@ export default function Profile() {
               <View style={[styles.menuIconContainerGlass, { backgroundColor: '#fbbf2420' }]}>
                 <Ionicons name={isDark ? "moon" : "sunny"} size={20} color="#fbbf24" />
               </View>
-              <Text style={[styles.menuLabel, { flex: 1, color: colors.text }]}>Dark Appearance</Text>
+              <Text style={[styles.menuLabel, { flex: 1, color: colors.text }]}>Dark Mode</Text>
               <Switch
                 value={isDark}
                 onValueChange={toggleTheme}
@@ -238,6 +287,7 @@ export default function Profile() {
             email: profileUser?.email || user?.email || '',
             role: profileUser?.role || user?.role || 'supervisor',
             phone: profileUser?.phone || user?.phone || '',
+            address: profileUser?.address || user?.address || '',
             profileZone: profileUser?.profileZone || user?.profileZone || '',
             profileImage: profileUser?.profileImage || user?.profileImage || null,
         }}
@@ -278,6 +328,13 @@ const styles = StyleSheet.create({
   contactIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   contactLabel: { fontSize: 11, fontFamily: Fonts.bodyBold, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 },
   contactItemText: { fontSize: 16, fontFamily: Fonts.bodyMedium },
+  
+  // Stats
+  statsRow: { flexDirection: 'row', gap: 16 },
+  statCardGlass: { flex: 1, padding: 20, borderRadius: 20, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 16 },
+  statIconBox: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  statValue: { fontSize: 22, fontFamily: Fonts.headingXBold },
+  statLabel: { fontSize: 12, fontFamily: Fonts.bodyMedium },
   // Menus
   menuCardGlass: { borderRadius: 24, borderWidth: 1, overflow: 'hidden' },
   menuItemGlass: { flexDirection: 'row', alignItems: 'center', padding: 18, gap: 16 },

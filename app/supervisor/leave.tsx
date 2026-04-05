@@ -217,7 +217,7 @@ export default function LeavePage() {
                 <View style={[styles.infoCard, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '40' }]}>
                     <Ionicons name="information-circle" size={20} color={colors.primary} />
                     <Text style={[styles.infoText, { color: colors.primary }]}>
-                        Your request will be reviewed by the admin. You will receive a notification once it's approved or rejected.
+                        Your request will be reviewed by the admin. You will receive a notification once it&apos;s approved or rejected.
                     </Text>
                 </View>
 

@@ -300,7 +300,7 @@ export default function AdminComplaints() {
 
                             {/* Description */}
                             <View style={[s.descBlock, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
-                                <Text style={[s.descText, { color: colors.text }]}>"{detail?.description}"</Text>
+                                <Text style={[s.descText, { color: colors.text }]}>&quot;{detail?.description}&quot;</Text>
                             </View>
 
                             {/* Admin response if any */}

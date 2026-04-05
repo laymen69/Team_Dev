@@ -3,7 +3,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-const AppMapView = forwardRef(({
+const AppMapView = forwardRef(function AppMapView({
     style,
     initialRegion,
     children,
@@ -12,7 +12,7 @@ const AppMapView = forwardRef(({
     zoomEnabled = true,
     dragging = true,
     mapType = 'standard'
-}: any, ref) => {
+}: any, ref) {
     const mapContainer = useRef<HTMLDivElement>(null);
     const map = useRef<maplibregl.Map | null>(null);
     const markers = useRef<maplibregl.Marker[]>([]);
@@ -90,7 +90,9 @@ const AppMapView = forwardRef(({
         <View style={[styles.container, style]}>
             <div ref={mapContainer} style={{ width: '100%', height: '100%', position: 'absolute' }} />
             {/* Markers are handled via a separate effect or portal-like logic */}
-            <MarkerManager map={map.current} children={children} />
+            <MarkerManager map={map.current}>
+                {children}
+            </MarkerManager>
         </View>
     );
 });
